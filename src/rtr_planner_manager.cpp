@@ -63,12 +63,30 @@ public:
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");
       return false;
     }
+
+    // TODO(henningkayser@picknik.ai): handle groups in RobotModel
     return true;
   }
 
   virtual bool canServiceRequest(const moveit_msgs::MotionPlanRequest& req) const
   {
-    return false;
+    // check if there is a roadmap configuration for the given group
+    if (!planner_interface_->hasGroupConfig(req.group_name))
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "No Planner configuration found for group " << req.group_name);
+      return false;
+    }
+
+    // This version only supports single goal poses
+    bool goal_constraints_valid =
+        req.goal_constraints.size() == req.goal_constraints[0].position_constraints.size() ==
+        req.goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() == 1;
+
+    if (!goal_constraints_valid)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Invalid goal constraints. Only single goal poses are supported!");
+    }
+    return goal_constraints_valid;
   }
 
   virtual std::string getDescription() const
@@ -78,7 +96,8 @@ public:
 
   virtual void getPlanningAlgorithms(std::vector<std::string>& algs) const
   {
-    algs.push_back("RapidPlan");
+    algs.resize(1);
+    algs[0] = "RapidPlan";
   }
 
   virtual void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
@@ -89,7 +108,7 @@ public:
   getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
                      const planning_interface::MotionPlanRequest& req, moveit_msgs::MoveItErrorCodes& error_code) const
   {
-    RTRPlanningContext context("context", req.group_name, planner_interface_);
+    RTRPlanningContext context("rtr_planning_context", req.group_name, planner_interface_);
     context.setMotionPlanRequest(req);
     context.setPlanningScene(planning_scene);
     return std::make_shared<RTRPlanningContext>(context);

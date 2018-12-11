@@ -88,7 +88,7 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
   geometry_msgs::Pose goal_pose;
   if (!getGoalPose(request_.goal_constraints, goal_pose))
   {
-    ROS_ERROR_NAMED(LOGNAME, "Invalid set of goal constraints. Only position goals are supported!");
+    ROS_ERROR_NAMED(LOGNAME, "Invalid set of goal constraints. Only pose goals are supported!");
     res.error_code_.val = res.error_code_.FAILURE;
     return false;
   }

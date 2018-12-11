@@ -77,6 +77,9 @@ public:
   /** \brief Check if the HardwareInterface is available and the planner can receive requests */
   bool isReady() const;
 
+  /** \brief Verify there are roadmaps for a given group */
+  bool hasGroupConfig(const std::string& group_name) const;
+
   /** \brief Run planning attempt and generate a robot trajectory*/
   bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
              const geometry_msgs::Pose goal_pose, robot_trajectory::RobotTrajectory& trajectory);

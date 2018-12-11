@@ -92,6 +92,11 @@ bool RTRPlannerInterface::isReady() const
   return true;
 }
 
+bool RTRPlannerInterface::hasGroupConfig(const std::string& group_name) const
+{
+  return roadmaps_.count(group_name);
+}
+
 bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
                                 const geometry_msgs::Pose goal_pose, robot_trajectory::RobotTrajectory& trajectory)
 {
