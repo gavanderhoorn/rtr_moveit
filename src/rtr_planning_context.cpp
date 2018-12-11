@@ -59,7 +59,9 @@ bool getGoalPose(const std::vector<moveit_msgs::Constraints>& goal_constraints, 
     return false;
   if (goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() != 1)
     return false;
-  return goal_constraints[0].position_constraints[0].constraint_region.primitive_poses[0];
+
+  goal_pose = goal_constraints[0].position_constraints[0].constraint_region.primitive_poses[0];
+  return true;
 }
 
 RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::string& group,
