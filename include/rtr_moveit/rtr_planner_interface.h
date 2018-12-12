@@ -100,16 +100,7 @@ protected:
                            robot_trajectory::RobotTrajectory& trajectory) const;
 
 private:
-  rtr::HardwareInterface hardware_interface_;
-  rtr::PathPlanner planner_;
-
-  // available roadmap specifications
-  std::map<std::string, RoadmapSpecification> roadmaps_;
-  // name of roadmap loaded by the planner
-  std::string loaded_roadmap_;
-  // indices of roadmaps written to the board
-  std::map<uint16_t, std::string> roadmap_indices_;
-
+  /** \brief Find the roadmap index for a given roadmap name */
   bool findRoadmapIndex(const std::string& roadmap_name, uint16_t& roadmap_index)
   {
     for (auto it = roadmap_indices_.begin(); it != roadmap_indices_.end(); it++)
@@ -122,6 +113,17 @@ private:
     }
     return false;
   }
+
+  // RapidPlan interfaces
+  rtr::HardwareInterface hardware_interface_;
+  rtr::PathPlanner planner_;
+
+  // available roadmap specifications
+  std::map<std::string, RoadmapSpecification> roadmaps_;
+  // name of roadmap loaded by the planner
+  std::string loaded_roadmap_;
+  // indices of roadmaps written to the board
+  std::map<uint16_t, std::string> roadmap_indices_;
 };
 }  // namespace rtr_moveit
 
