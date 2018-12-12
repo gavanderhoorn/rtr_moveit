@@ -115,7 +115,7 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
 
   // convert goal pose to Transform
   rtr::Transform goal_transform, tolerance, weights;
-  poseMsgToRTR(goal_pose, goal_transform);
+  poseMsgToRtr(goal_pose, goal_transform);
 
   // query collisions from board
   std::vector<uint8_t> collisions;

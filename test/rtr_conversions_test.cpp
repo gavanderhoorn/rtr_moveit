@@ -53,9 +53,9 @@ TEST(TestSuite, convertPoseAndTransform)
   std::array<float, 6> transform, test_transform;
 
   // convert pose to transform and back
-  rtr_moveit::poseMsgToRTR(pose, transform);
-  rtr_moveit::poseRTRToMsg(transform, test_pose);
-  rtr_moveit::poseMsgToRTR(test_pose, test_transform);
+  rtr_moveit::poseMsgToRtr(pose, transform);
+  rtr_moveit::poseRtrToMsg(transform, test_pose);
+  rtr_moveit::poseMsgToRtr(test_pose, test_transform);
 
   // equality threshold
   double threshold = std::numeric_limits<float>::epsilon();

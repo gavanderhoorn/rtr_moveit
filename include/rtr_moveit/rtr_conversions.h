@@ -53,7 +53,7 @@
 
 namespace rtr_moveit
 {
-void poseMsgToRTR(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
+void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
 {
   // set position x/y/z
   rtr_transform[0] = pose.position.x;
@@ -68,7 +68,7 @@ void poseMsgToRTR(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_tra
   rtr_transform[5] = euler_angles[2];
 }
 
-void poseRTRToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
+void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
 {
   pose.position.x = rtr_transform[0];
   pose.position.y = rtr_transform[1];
@@ -77,7 +77,7 @@ void poseRTRToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose
   tf::quaternionTFToMsg(rotation, pose.orientation);
 }
 
-void pathRTRToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
+void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
                               const std::deque<unsigned int>& path_indices,
                               trajectory_msgs::JointTrajectory& trajectory)
 {
