@@ -42,12 +42,12 @@
 #include <moveit/planning_interface/planning_interface.h>
 #include <pluginlib/class_list_macros.hpp>
 
-#include <rtr_interface/rtr_planning_context.h>
-#include <rtr_interface/rtr_planner_interface.h>
+#include <rtr_moveit/rtr_planning_context.h>
+#include <rtr_moveit/rtr_planner_interface.h>
 
 const std::string LOGNAME = "rtr_planner_manager";
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 class RTRPlannerManager : public planning_interface::PlannerManager
 {
@@ -117,6 +117,6 @@ public:
 private:
   const RTRPlannerInterfacePtr planner_interface_;
 };
-}  // namespace rtr_interface
+}  // namespace rtr_moveit
 
-PLUGINLIB_EXPORT_CLASS(rtr_interface::RTRPlannerManager, planning_interface::PlannerManager);
+PLUGINLIB_EXPORT_CLASS(rtr_moveit::RTRPlannerManager, planning_interface::PlannerManager);

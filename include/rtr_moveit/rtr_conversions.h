@@ -36,8 +36,8 @@
 Desc: henningkayser@picknik.ai
 */
 
-#ifndef RTR_INTERFACE_RTR_CONVERSIONS_H
-#define RTR_INTERFACE_RTR_CONVERSIONS_H
+#ifndef RTR_MOVEIT_RTR_CONVERSIONS_H
+#define RTR_MOVEIT_RTR_CONVERSIONS_H
 
 #include <array>
 #include <cmath>
@@ -51,7 +51,7 @@ Desc: henningkayser@picknik.ai
 #include <geometry_msgs/Pose.h>
 #include <trajectory_msgs/JointTrajectory.h>
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 void poseMsgToRTR(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
 {
@@ -97,6 +97,6 @@ void pathRTRToJointTrajectory(const std::vector<std::vector<float>>& roadmap_sta
     trajectory.points[i].time_from_start = ros::Duration(0.0);
   }
 }
-}  // namespace rtr_interface
+}  // namespace rtr_moveit
 
-#endif  // RTR_INTERFACE_RTR_CONVERSIONS_H
+#endif  // RTR_MOVEIT_RTR_CONVERSIONS_H

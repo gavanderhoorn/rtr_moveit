@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rtr_moveit)
 
+# C++ 11
 add_compile_options(-std=c++11)
 
-find_package(Eigen3 REQUIRED)
+# Warnings
+add_definitions(-W -Wall -Wextra
+  -Wwrite-strings -Wunreachable-code -Wpointer-arith
+  -Winit-self -Wredundant-decls
+  -Wno-unused-parameter -Wno-unused-function)
 
+# Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
 	geometry_msgs
 	moveit_core
@@ -18,61 +24,117 @@ find_package(catkin REQUIRED COMPONENTS
 	rtr_core_stub
 	tf
 	trajectory_msgs
-	)
+)
 
-#find_package(Boost REQUIRED COMPONENTS system)
+# System dependencies are found with CMake's conventions
+find_package(Eigen3 REQUIRED)
 
+###################################
+## Catkin specific configuration ##
+###################################
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES moveit_rtr_planner_plugin
-  CATKIN_DEPENDS moveit_core pluginlib roscpp
+  CATKIN_DEPENDS
+    roscpp
+    moveit_core
+    pluginlib
+    roscpp
+    rtr_core_stub
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}
+  DEPENDS
+    EIGEN3
 )
 
 ###########
 ## Build ##
 ###########
 
+# Specify additional locations of header files
+# Your package locations should be listed before other locations
+include_directories(
+  SYSTEM
+    ${EIGEN3_INCLUDE_DIRS}
+)
+
 include_directories(
  include
  ${catkin_INCLUDE_DIRS}
 )
 
-add_library(rtr_planner_interface src/rtr_planner_interface.cpp)
-set_target_properties(rtr_planner_interface PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})
-target_link_libraries(rtr_planner_interface ${catkin_LIBRARIES})
+# Declare a C++ library with project namespace to avoid naming collision
+add_library(
+  ${PROJECT_NAME}
+  src/rtr_planner_interface.cpp
+  src/rtr_planning_context.cpp
+)
 
-add_library(rtr_planning_context src/rtr_planning_context.cpp)
-set_target_properties(rtr_planning_context PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})
-target_link_libraries(rtr_planning_context ${catkin_LIBRARIES} rtr_planner_interface)
+# Specify libraries to link a library or executable target against
+target_link_libraries(
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
-add_library(moveit_rtr_planner_plugin src/rtr_planner_manager.cpp)
-set_target_properties(moveit_rtr_planner_plugin PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})
-target_link_libraries(moveit_rtr_planner_plugin ${catkin_LIBRARIES} rtr_planner_interface rtr_planning_context)
+# Declare a C++ library with project namespace to avoid naming collision
+add_library(
+  ${PROJECT_NAME}_plugin
+  src/rtr_planner_manager.cpp
+)
 
-install(TARGETS moveit_rtr_planner_plugin rtr_planner_interface rtr_planning_context
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(DIRECTORY include DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+# Specify libraries to link a library or executable target against
+target_link_libraries(
+  ${PROJECT_NAME}_plugin
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
-install(FILES rtr_interface_plugin_description.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+#############
+## Install ##
+#############
 
+# Mark executables and/or libraries for installation
+install(
+  TARGETS
+  ${PROJECT_NAME} ${PROJECT_NAME}_plugin
+  ARCHIVE DESTINATION
+    ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION
+    ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION
+    ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Mark cpp header files for installation
+install(
+  DIRECTORY
+    include/${PROJECT_NAME}/
+  DESTINATION
+    ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+#Mark plugin description file for installation
+install(
+  FILES
+    rtr_moveit_plugin_description.xml
+  DESTINATION
+    ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 #############
 ## Testing ##
 #############
 
 if(CATKIN_ENABLE_TESTING)
-	find_package(rostest REQUIRED)
+  find_package(rostest REQUIRED)
 
-	add_rostest_gtest(rtr_conversions_test test/rtr_conversions_test.test test/rtr_conversions_test.cpp)
-	target_link_libraries(rtr_conversions_test
-		${catkin_LIBRARIES}
-		${Boost_LIBRARIES}
-		)
+  add_rostest_gtest(rtr_conversions_test test/rtr_conversions_test.test test/rtr_conversions_test.cpp)
+  target_link_libraries(rtr_conversions_test
+    ${PROJECT_NAME}
+    ${catkin_LIBRARIES}
+  )
 
 endif()
 
-# Check for correct C++ source code
+# Test for correct C++ source code
 roslint_cpp()

@@ -38,7 +38,7 @@
 
 #include <limits>
 #include <gtest/gtest.h>
-#include <rtr_interface/rtr_conversions.h>
+#include <rtr_moveit/rtr_conversions.h>
 
 TEST(TestSuite, convertPoseAndTransform)
 {
@@ -53,9 +53,9 @@ TEST(TestSuite, convertPoseAndTransform)
   std::array<float, 6> transform, test_transform;
 
   // convert pose to transform and back
-  rtr_interface::poseMsgToRTR(pose, transform);
-  rtr_interface::poseRTRToMsg(transform, test_pose);
-  rtr_interface::poseMsgToRTR(test_pose, test_transform);
+  rtr_moveit::poseMsgToRTR(pose, transform);
+  rtr_moveit::poseRTRToMsg(transform, test_pose);
+  rtr_moveit::poseMsgToRTR(test_pose, test_transform);
 
   // equality threshold
   double threshold = std::numeric_limits<float>::epsilon();

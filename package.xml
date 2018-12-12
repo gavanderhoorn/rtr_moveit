@@ -53,6 +53,6 @@
 
 
   <export>
-    <moveit_core plugin="${prefix}/rtr_interface_plugin_description.xml"/>
+    <moveit_core plugin="${prefix}/rtr_moveit_plugin_description.xml"/>
   </export>
 </package>

@@ -40,12 +40,12 @@ Desc: henningkayser@picknik.ai
 #include <string>
 #include <vector>
 
-#include <rtr_interface/rtr_planner_interface.h>
-#include <rtr_interface/rtr_conversions.h>
+#include <rtr_moveit/rtr_planner_interface.h>
+#include <rtr_moveit/rtr_conversions.h>
 
 const std::string LOGNAME = "rtr_planner_interface";
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 RTRPlannerInterface::RTRPlannerInterface()
 {
@@ -188,4 +188,4 @@ void RTRPlannerInterface::processSolutionPath(const std::deque<unsigned int>& wa
 {
 }
 
-}  // namespace rtr_interface
+}  // namespace rtr_moveit

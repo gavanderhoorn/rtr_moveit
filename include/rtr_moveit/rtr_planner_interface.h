@@ -36,8 +36,8 @@
 Desc: henningkayser@picknik.ai
 */
 
-#ifndef RTR_INTERFACE_RTR_PLANNER_INTERFACE_H
-#define RTR_INTERFACE_RTR_PLANNER_INTERFACE_H
+#ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
+#define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 
 #include <deque>
 #include <string>
@@ -52,7 +52,7 @@ Desc: henningkayser@picknik.ai
 #include <moveit_msgs/RobotState.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 
@@ -123,6 +123,6 @@ private:
     return false;
   }
 };
-}  // namespace rtr_interface
+}  // namespace rtr_moveit
 
-#endif  // RTR_INTERFACE_RTR_PLANNER_INTERFACE_H
+#endif  // RTR_MOVEIT_RTR_PLANNER_INTERFACE_H

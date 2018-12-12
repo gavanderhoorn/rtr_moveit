@@ -39,14 +39,14 @@
 #include <string>
 #include <vector>
 
-#include <rtr_interface/rtr_planning_context.h>
-#include <rtr_interface/rtr_planner_interface.h>
+#include <rtr_moveit/rtr_planning_context.h>
+#include <rtr_moveit/rtr_planner_interface.h>
 
 #include <moveit_msgs/Constraints.h>
 
 const std::string LOGNAME = "rtr_planning_context";
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 // Short helper function to extract a goal pose from goal constraints.
 // This will be replaced by more sophisticated methods, that support
@@ -117,4 +117,4 @@ bool RTRPlanningContext::terminate()
   ROS_WARN_STREAM_NAMED(LOGNAME, "Failed to terminate the planning attempt! This is not supported.");
   return false;
 }
-}  // namespace rtr_interface
+}  // namespace rtr_moveit

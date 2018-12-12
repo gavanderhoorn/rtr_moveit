@@ -36,15 +36,16 @@
    Desc: henningkayser@picknik.ai
 */
 
-#ifndef RTR_INTERFACE_RTR_PLANNING_CONTEXT_H
-#define RTR_INTERFACE_RTR_PLANNING_CONTEXT_H
+#ifndef RTR_MOVEIT_RTR_PLANNING_CONTEXT_H
+#define RTR_MOVEIT_RTR_PLANNING_CONTEXT_H
 
 #include <string>
 
 #include <moveit/macros/class_forward.h>
 #include <moveit/planning_interface/planning_interface.h>
+#include <rtr_moveit/rtr_planner_interface.h>
 
-namespace rtr_interface
+namespace rtr_moveit
 {
 MOVEIT_CLASS_FORWARD(RTRPlanningContext);
 MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
@@ -68,6 +69,6 @@ public:
 private:
   const RTRPlannerInterfacePtr planner_interface_;
 };
-}  // namespace rtr_interface
+}  // namespace rtr_moveit
 
-#endif  // RTR_INTERFACE_RTR_PLANNING_CONTEXT_H
+#endif  // RTR_MOVEIT_RTR_PLANNING_CONTEXT_H
