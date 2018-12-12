@@ -110,11 +110,11 @@ private:
   // indices of roadmaps written to the board
   std::map<uint16_t, std::string> roadmap_indices_;
 
-  bool findRoadmapIndex(const std::string& roadmap, uint16_t& roadmap_index)
+  bool findRoadmapIndex(const std::string& roadmap_name, uint16_t& roadmap_index)
   {
     for (auto it = roadmap_indices_.begin(); it != roadmap_indices_.end(); it++)
     {
-      if (it->second == roadmap)
+      if (it->second == roadmap_name)
       {
         roadmap_index = it->first;
         return true;

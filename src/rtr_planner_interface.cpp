@@ -103,15 +103,13 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
 {
   // TODO(henningkayser@picknik.ai): function should be threadsave/mutex locked
 
-  // verify roadmap and retrive roadmap index
+  // verify roadmap and retrieve roadmap index
   uint16_t roadmap_index;
   if (!prepareRoadmap(group_name, roadmap_index))
   {
     ROS_ERROR_STREAM_NAMED(LOGNAME, "Plan aborted!");
     return false;
   }
-  // Find closest existing state in roadmap
-  unsigned int start_config = 0;  // dummy
 
   // convert goal pose to Transform
   rtr::Transform goal_transform, tolerance, weights;
@@ -119,12 +117,15 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
 
   // query collisions from board
   std::vector<uint8_t> collisions;
-  std::vector<rtr::Voxel> obstacles;  // dummy
-  if (!hardware_interface_.CheckScene(obstacles, roadmap_index, collisions))
+  std::vector<rtr::Voxel> obstacles_unused;
+  if (!hardware_interface_.CheckScene(obstacles_unused, roadmap_index, collisions))
   {
     ROS_ERROR_NAMED(LOGNAME, "Hardware Interface failed to check collision scene!");
     return false;
   }
+
+  // Find closest existing state in roadmap
+  unsigned int start_config = 0;  // dummy
 
   // query planner
   std::deque<unsigned int> waypoints;

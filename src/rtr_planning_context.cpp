@@ -64,9 +64,9 @@ bool getGoalPose(const std::vector<moveit_msgs::Constraints>& goal_constraints, 
   return true;
 }
 
-RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::string& group,
+RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::string& planning_group,
                                        const RTRPlannerInterfacePtr& planner_interface)
-  : planning_interface::PlanningContext(name, group), planner_interface_(planner_interface)
+  : planning_interface::PlanningContext(name, planning_group), planner_interface_(planner_interface)
 {
 }
 

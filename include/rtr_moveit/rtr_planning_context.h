@@ -53,7 +53,7 @@ MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 class RTRPlanningContext : public planning_interface::PlanningContext
 {
 public:
-  RTRPlanningContext(const std::string& name, const std::string& group,
+  RTRPlanningContext(const std::string& name, const std::string& planning_group,
                      const RTRPlannerInterfacePtr& planner_interface);
 
   virtual ~RTRPlanningContext()
