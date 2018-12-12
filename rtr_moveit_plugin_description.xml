@@ -1,7 +1,7 @@
 <library path="lib/librtr_moveit_plugin">
   <class name="rtr_moveit/RTRPlanner" type="rtr_moveit::RTRPlannerManager" base_class_type="planning_interface::PlannerManager">
     <description>
-    The Realtime Robotics RapidPlan planner plugin.
+    The Realtime Robotics RapidPlan planner plugin for MoveIt!
     </description>
   </class>
 </library>
