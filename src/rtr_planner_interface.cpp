@@ -53,6 +53,11 @@ RTRPlannerInterface::RTRPlannerInterface()
   // TODO(henningkayser@þicknik.ai) implement parameter lookup
 }
 
+RTRPlannerInterface::~RTRPlannerInterface()
+{
+  // TODO(henningkayser@picknik.ai) implement destructor
+}
+
 bool RTRPlannerInterface::initialize()
 {
   // check if hardware is connected
