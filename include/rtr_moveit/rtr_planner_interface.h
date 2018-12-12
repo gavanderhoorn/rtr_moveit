@@ -33,8 +33,8 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
-Desc: henningkayser@picknik.ai
-*/
+ * Desc: henningkayser@picknik.ai
+ */
 
 #ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 #define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H

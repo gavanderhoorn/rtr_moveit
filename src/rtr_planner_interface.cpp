@@ -33,8 +33,8 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
-Desc: henningkayser@picknik.ai
-*/
+ * Desc: henningkayser@picknik.ai
+ */
 
 #include <deque>
 #include <string>
