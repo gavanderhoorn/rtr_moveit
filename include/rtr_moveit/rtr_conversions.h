@@ -90,11 +90,7 @@ void pathRTRToJointTrajectory(const std::vector<std::vector<float>>& roadmap_sta
     for (int j = 0; j < joints_num; j++)
       trajectory.points[i].positions[j] = roadmap_states[i][j];
 
-    // set remaining values to 0.0
-    trajectory.points[i].velocities.resize(joints_num);
-    trajectory.points[i].accelerations.resize(joints_num);
-    trajectory.points[i].effort.resize(joints_num);
-    trajectory.points[i].time_from_start = ros::Duration(0.0);
+    // TODO(henningkayser@picknik.ai): Initialize velocities, accelerations, effort, time_from-start
   }
 }
 }  // namespace rtr_moveit

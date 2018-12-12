@@ -50,6 +50,7 @@ namespace rtr_moveit
 RTRPlannerInterface::RTRPlannerInterface()
 {
   // load parameters
+  // TODO(henningkayser@þicknik.ai) implement parameter lookup
 }
 
 bool RTRPlannerInterface::initialize()
@@ -100,7 +101,7 @@ bool RTRPlannerInterface::hasGroupConfig(const std::string& group_name) const
 bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
                                 const geometry_msgs::Pose goal_pose, robot_trajectory::RobotTrajectory& trajectory)
 {
-  // probably all solve() functions should be threadsave/mutex locked
+  // TODO(henningkayser@picknik.ai): function should be threadsave/mutex locked
 
   // verify roadmap and retrive roadmap index
   uint16_t roadmap_index;
@@ -144,6 +145,7 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
                                 const moveit_msgs::RobotState& goal_state,
                                 robot_trajectory::RobotTrajectory& trajectory)
 {
+  // TODO(henningkayser@picknik.ai): implement solve() with goal states
   return false;
 }
 
@@ -186,6 +188,7 @@ void RTRPlannerInterface::processSolutionPath(const std::deque<unsigned int>& wa
                                               const std::deque<unsigned int>& edges,
                                               robot_trajectory::RobotTrajectory& trajectory) const
 {
+  // TODO(henningkayser@icknik.ai): implement trajectory processing
 }
 
 }  // namespace rtr_moveit

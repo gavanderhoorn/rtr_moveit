@@ -102,6 +102,7 @@ public:
 
   virtual void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
   {
+    // TODO(henningkayser@picknik.ai): implement setPlannerConfiguration()
   }
 
   virtual planning_interface::PlanningContextPtr
