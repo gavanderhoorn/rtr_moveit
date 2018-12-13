@@ -67,14 +67,21 @@ bool RTRPlannerInterface::initialize()
     return false;
   }
 
-  // try to initialize hardware and perform handshake
-  if (!(hardware_interface_.Init() && hardware_interface_.Handshake()))
+  // try to initialize hardware
+  if (!(hardware_interface_.Init())
   {
     ROS_ERROR_NAMED(LOGNAME, "Failed to initialize RapidPlan interface. Unable to initialize Hardware!");
     return false;
   }
 
-  ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized!");
+  // perform handshake
+  if (!(hardware_interface_.Handshake())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
+    return false;
+  }
+
+  ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
   return true;
 }
 
