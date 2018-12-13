@@ -137,7 +137,8 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
     return false;
   }
 
-  // Find closest existing state in roadmap
+  // TODO(henningkayser): implement state search
+  // Find closest existing configuration in roadmap that can be connected to the start state
   unsigned int start_config = 0;  // dummy
 
   // query planner
@@ -146,12 +147,14 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
   int result = planner_.FindPath(start_config, goal_transform, collisions, tolerance, weights, waypoints, edges);
   if (result != 0)
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
+    ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
     return false;
   }
 
   // create joint trajectory from solution
   processSolutionPath(waypoints, edges, trajectory);
+
+  // TODO(henningkayser): Connect start state to trajectory
   return true;
 }
 
@@ -160,6 +163,8 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
                                 robot_trajectory::RobotTrajectory& trajectory)
 {
   // TODO(henningkayser): implement solve() with goal states
+  // This can be done by finding goal candidate states in the roadmap and connecting the trajectory to goal_state
+  ROS_ASSERT_MSG(false, "Function not implemented.");
   return false;
 }
 
@@ -203,6 +208,7 @@ void RTRPlannerInterface::processSolutionPath(const std::deque<unsigned int>& wa
                                               robot_trajectory::RobotTrajectory& trajectory) const
 {
   // TODO(henningkayser): implement trajectory processing
+  ROS_ASSERT_MSG(false, "Function not implemented.");
 }
 
 }  // namespace rtr_moveit
