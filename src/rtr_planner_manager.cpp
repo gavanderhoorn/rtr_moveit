@@ -57,7 +57,7 @@ public:
   }
 
   /** \brief Initializes the planner interface and load parameters */
-  virtual bool initialize(const robot_model::RobotModelConstPtr& model, const std::string& ns)
+  bool initialize(const robot_model::RobotModelConstPtr& model, const std::string& ns)
   {
     if (!planner_interface_->initialize())
     {
@@ -70,7 +70,7 @@ public:
   }
 
   /** \brief Verifies that the MotionPlanRequest can be handled by the planner */
-  virtual bool canServiceRequest(const moveit_msgs::MotionPlanRequest& req) const
+  bool canServiceRequest(const moveit_msgs::MotionPlanRequest& req) const
   {
     // check if there is a roadmap configuration for the given group
     if (!planner_interface_->hasGroupConfig(req.group_name))
@@ -92,27 +92,27 @@ public:
   }
 
   /** \brief Returns the planner description */
-  virtual std::string getDescription() const
+  std::string getDescription() const
   {
     return "RTR";
   }
 
   /** \brief Returns the names of available planning algorithms */
-  virtual void getPlanningAlgorithms(std::vector<std::string>& algs) const
+  void getPlanningAlgorithms(std::vector<std::string>& algs) const
   {
     algs.resize(1);
     algs[0] = "RapidPlan";
   }
 
   /** \brief Applies the given planner configuration to the planner */
-  virtual void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
+  void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
   {
     // TODO(henningkayser@picknik.ai): implement setPlannerConfiguration()
     ROS_ASSERT_MSG(false, "function not implemented.");
   }
 
   /** \brief Returns a configured planning context for a given planning scene and motion plan request */
-  virtual planning_interface::PlanningContextPtr
+  planning_interface::PlanningContextPtr
   getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
                      const planning_interface::MotionPlanRequest& req, moveit_msgs::MoveItErrorCodes& error_code) const
   {
