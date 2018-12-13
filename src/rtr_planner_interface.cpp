@@ -87,6 +87,7 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
+  // TODO(henningkayser): Test latency of hardware calls and drop Connected() or Handshake() if necessary
   // check connection
   if (!hardware_interface_.Connected())
   {
