@@ -38,47 +38,15 @@
 
 #include <limits>
 #include <gtest/gtest.h>
-#include <rtr_moveit/rtr_conversions.h>
+#include <rtrapi/HardwareInterface.h>
 
-TEST(TestSuite, convertPoseAndTransform)
+TEST(TestSuite, checkHardware)
 {
-  // create pose and test pose
-  geometry_msgs::Pose pose, test_pose;
-  pose.position.x = 0.5;
-  pose.position.y = 0.3;
-  pose.position.z = 0.9;
-  tf::Quaternion rotation = tf::createQuaternionFromRPY(0.1, 0.4, 0.2);
-  tf::quaternionTFToMsg(rotation, pose.orientation);
-
-  std::array<float, 6> transform, test_transform;
-
-  // convert pose to transform and back
-  rtr_moveit::poseMsgToRtr(pose, transform);
-  rtr_moveit::poseRtrToMsg(transform, test_pose);
-  rtr_moveit::poseMsgToRtr(test_pose, test_transform);
-
-  // equality threshold
-  double threshold = std::numeric_limits<float>::epsilon();
-
-  // test pose equality
-  EXPECT_TRUE(std::abs(pose.position.x - test_pose.position.x) < threshold);
-  EXPECT_TRUE(std::abs(pose.position.y - test_pose.position.y) < threshold);
-  EXPECT_TRUE(std::abs(pose.position.z - test_pose.position.z) < threshold);
-
-  // test rotation equality
-  tf::Quaternion test_rotation;
-  tf::quaternionMsgToTF(test_pose.orientation, test_rotation);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < 0.1) << "Pose: Angle shortest path "
-                                                                         << rotation.angleShortestPath(test_rotation);
-
-  // test transform equality from the other side
-  EXPECT_TRUE(std::abs(transform[0] - test_transform[0]) < threshold);
-  EXPECT_TRUE(std::abs(transform[1] - test_transform[1]) < threshold);
-  EXPECT_TRUE(std::abs(transform[2] - test_transform[2]) < threshold);
-  rotation = tf::createQuaternionFromRPY(transform[0], transform[1], transform[2]);
-  test_rotation = tf::createQuaternionFromRPY(test_transform[0], test_transform[1], test_transform[2]);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < 0.1) << "Transform: Angle shortest path "
-                                                                         << rotation.angleShortestPath(test_rotation);
+  rtr::HardwareInterface hardwareInterface;
+  EXPECT_TRUE(hardwareInterface.Init()) << "Unable to initialize HardwareInterface!";
+  EXPECT_TRUE(hardwareInterface.Connected()) << "HardwareInterface is not connected!";
+  EXPECT_TRUE(hardwareInterface.Handshake()) << "Hardwareinterface - Handshake failed!";
+  EXPECT_TRUE(hardwareInterface.Test()) << "Hardwareinterface - Test failed";
 }
 
 int main(int argc, char** argv)

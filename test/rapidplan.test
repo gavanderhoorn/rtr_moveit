@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+	<test pkg="rtr_moveit" type="rapidplan_test" test-name="rapidplan_test" time-limit="300" args=""/>
+</launch>
