@@ -68,14 +68,14 @@ bool RTRPlannerInterface::initialize()
   }
 
   // try to initialize hardware
-  if (!(hardware_interface_.Init())
+  if (!hardware_interface_.Init())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Failed to initialize Hardware.");
     return false;
   }
 
   // perform handshake
-  if (!(hardware_interface_.Handshake())
+  if (!hardware_interface_.Handshake())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
     return false;
@@ -184,7 +184,7 @@ bool RTRPlannerInterface::prepareRoadmap(const std::string& roadmap, uint16_t& r
   {
     if (!planner_.LoadRoadmap(roadmap_spec.configs_file, roadmap_spec.edges_file, roadmap_spec.transforms_file))
     {
-      ROS_ERROR_NAMED(LOGNAME, "Failed to load roadmap " << roadmap << " in PathPlanner.");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap " << roadmap << " in PathPlanner.");
       return false;
     }
   }
@@ -195,7 +195,7 @@ bool RTRPlannerInterface::prepareRoadmap(const std::string& roadmap, uint16_t& r
     // write roadmap and retrieve new roadmap index
     if (!hardware_interface_.WriteRoadmap(roadmap_spec.occupancy_file, roadmap_index))
     {
-      ROS_ERROR_NAMED(LOGNAME, "Unable to write roadmap " << roadmap << " to hardware.");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Unable to write roadmap " << roadmap << " to hardware.");
       return false;
     }
     roadmap_indices_[roadmap_index] = roadmap;
