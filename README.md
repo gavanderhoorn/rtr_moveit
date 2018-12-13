@@ -12,10 +12,10 @@ TODO(henningkayser@picknik.ai): fix Travis badge:
 ### Plugin Structure
 
 The plugin consists of the three classes RTRPlannerManager, RTRPlanningContext and RTRPlannerInterface.
-While the first two implement the plugin structure of Moveit!, the RTRPlannerInterface provides safe and convenient calls of RapidPlan.
+While the first two implement the plugin structure of Moveit!, the RTRPlannerInterface provides and interface for sending motion planning requests to RapidPlan.
 
 RapidPlan's HardwareInterface and PathPlanner need to be initialized with the same roadmaps at each query.
-Unfortunately, it is not possible to retrieve the currently loaded roadmap of the PathPlanner and the stored roadmaps on the Hardware.
+At the moment, it is not possible to retrieve the currently loaded roadmap of the PathPlanner and the stored roadmaps on the Hardware.
 The RTRPlannerInterface keeps track of loaded and stored roadmaps and handles write access.
 To prevent race conditions, calls of the PathPlanner and HardwareInterface are synchronized with a mutex lock.
 The interface hides all of this and only provides functions for initialization, availability and planning attempts.
