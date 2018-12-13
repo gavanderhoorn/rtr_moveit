@@ -57,27 +57,28 @@ TEST(TestSuite, convertPoseAndTransform)
   rtr_moveit::poseRtrToMsg(transform, test_pose);
   rtr_moveit::poseMsgToRtr(test_pose, test_transform);
 
-  // equality threshold
-  double threshold = std::numeric_limits<float>::epsilon();
+  // equality thresholds
+  double position_threshold = std::numeric_limits<float>::epsilon();
+  double orientation_threshold = 0.1;
 
   // test pose equality
-  EXPECT_TRUE(std::abs(pose.position.x - test_pose.position.x) < threshold);
-  EXPECT_TRUE(std::abs(pose.position.y - test_pose.position.y) < threshold);
-  EXPECT_TRUE(std::abs(pose.position.z - test_pose.position.z) < threshold);
+  EXPECT_TRUE(std::abs(pose.position.x - test_pose.position.x) < position_threshold);
+  EXPECT_TRUE(std::abs(pose.position.y - test_pose.position.y) < position_threshold);
+  EXPECT_TRUE(std::abs(pose.position.z - test_pose.position.z) < position_threshold);
 
   // test rotation equality
   tf::Quaternion test_rotation;
   tf::quaternionMsgToTF(test_pose.orientation, test_rotation);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < 0.1) << "Pose: Angle shortest path "
+  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < orientation_threshold) << "Pose: Angle shortest path "
                                                                          << rotation.angleShortestPath(test_rotation);
 
   // test transform equality from the other side
-  EXPECT_TRUE(std::abs(transform[0] - test_transform[0]) < threshold);
-  EXPECT_TRUE(std::abs(transform[1] - test_transform[1]) < threshold);
-  EXPECT_TRUE(std::abs(transform[2] - test_transform[2]) < threshold);
+  EXPECT_TRUE(std::abs(transform[0] - test_transform[0]) < position_threshold);
+  EXPECT_TRUE(std::abs(transform[1] - test_transform[1]) < position_threshold);
+  EXPECT_TRUE(std::abs(transform[2] - test_transform[2]) < position_threshold);
   rotation = tf::createQuaternionFromRPY(transform[0], transform[1], transform[2]);
   test_rotation = tf::createQuaternionFromRPY(test_transform[0], test_transform[1], test_transform[2]);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < 0.1) << "Transform: Angle shortest path "
+  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) <  orientation_threshold << "Transform: Angle shortest path "
                                                                          << rotation.angleShortestPath(test_rotation);
 }
 
