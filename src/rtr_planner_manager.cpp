@@ -103,6 +103,7 @@ public:
   virtual void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
   {
     // TODO(henningkayser@picknik.ai): implement setPlannerConfiguration()
+    ROS_ASSERT_MSG(false, "function not implemented.");
   }
 
   virtual planning_interface::PlanningContextPtr
