@@ -48,17 +48,27 @@ namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planning_context";
 
+// TODO(henningkayser): Move this to a an extra goal specification class
 // Short helper function to extract a goal pose from goal constraints.
 // This will be replaced by more sophisticated methods, that support
 // joint states and generate matching goal tolerances and weights.
 bool getGoalPose(const std::vector<moveit_msgs::Constraints>& goal_constraints, geometry_msgs::Pose& goal_pose)
 {
   if (goal_constraints.size() != 1)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal constraints. Should be 1.");
     return false;
+  }
   if (goal_constraints[0].position_constraints.size() != 1)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of posiiton constraints. Should be 1.");
     return false;
+  }
   if (goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() != 1)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal poses. Should be 1.");
     return false;
+  }
 
   goal_pose = goal_constraints[0].position_constraints[0].constraint_region.primitive_poses[0];
   return true;
@@ -88,7 +98,6 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
   geometry_msgs::Pose goal_pose;
   if (!getGoalPose(request_.goal_constraints, goal_pose))
   {
-    ROS_ERROR_NAMED(LOGNAME, "Invalid set of goal constraints. Only pose goals are supported!");
     res.error_code_.val = res.error_code_.FAILURE;
     return false;
   }

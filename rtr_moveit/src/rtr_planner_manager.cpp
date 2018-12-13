@@ -79,16 +79,25 @@ public:
       return false;
     }
 
+    // TODO(henningkayser): Move this (and getGoalPose() in planning context) to a an extra goal specification class
     // This version only supports single goal poses
-    bool goal_constraints_valid =
-        req.goal_constraints.size() == req.goal_constraints[0].position_constraints.size() ==
-        req.goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() == 1;
-
-    if (!goal_constraints_valid)
+    if (req.goal_constraints.size() != 1)
     {
-      ROS_ERROR_NAMED(LOGNAME, "Invalid goal constraints. Only single goal poses are supported!");
+      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal constraints. Should be 1.");
+      return false;
     }
-    return goal_constraints_valid;
+    if (req.goal_constraints[0].position_constraints.size() != 1)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of posiiton constraints. Should be 1.");
+      return false;
+    }
+    if (req.goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() != 1)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal poses. Should be 1.");
+      return false;
+    }
+
+    return true;
   }
 
   /** \brief Returns the planner description */
@@ -112,9 +121,9 @@ public:
   }
 
   /** \brief Returns a configured planning context for a given planning scene and motion plan request */
-  planning_interface::PlanningContextPtr
-  getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
-                     const planning_interface::MotionPlanRequest& req, moveit_msgs::MoveItErrorCodes& error_code) const
+  planning_interface::PlanningContextPtr getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                                            const planning_interface::MotionPlanRequest& req,
+                                                            moveit_msgs::MoveItErrorCodes& error_code) const
   {
     RTRPlanningContext context("rtr_planning_context", req.group_name, planner_interface_);
     context.setMotionPlanRequest(req);
