@@ -43,10 +43,10 @@
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
 
-const std::string LOGNAME = "rtr_planner_interface";
-
 namespace rtr_moveit
 {
+const std::string LOGNAME = "rtr_planner_interface";
+
 RTRPlannerInterface::RTRPlannerInterface()
 {
   // load parameters

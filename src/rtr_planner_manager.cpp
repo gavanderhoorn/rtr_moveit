@@ -45,10 +45,10 @@
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 
-const std::string LOGNAME = "rtr_planner_manager";
-
 namespace rtr_moveit
 {
+const std::string LOGNAME = "rtr_planner_manager";
+
 class RTRPlannerManager : public planning_interface::PlannerManager
 {
 public:

@@ -44,10 +44,10 @@
 
 #include <moveit_msgs/Constraints.h>
 
-const std::string LOGNAME = "rtr_planning_context";
-
 namespace rtr_moveit
 {
+const std::string LOGNAME = "rtr_planning_context";
+
 // Short helper function to extract a goal pose from goal constraints.
 // This will be replaced by more sophisticated methods, that support
 // joint states and generate matching goal tolerances and weights.
