@@ -50,6 +50,11 @@
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Pose.h>
 #include <trajectory_msgs/JointTrajectory.h>
+#include <moveit/planning_scene/planning_scene.h>
+#include <geometric_shapes/shapes.h>
+
+#include <moveit/collision_detection/world.h>
+#include <moveit/collision_detection_fcl/collision_world_fcl.h>
 
 namespace rtr_moveit
 {
@@ -92,6 +97,60 @@ static inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>
 
     // TODO(henningkayser@picknik.ai): Initialize velocities, accelerations, effort, time_from-start
   }
+}
+
+/* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
+static inline void planningSceneToRtrCollisionBoxes(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                                    const RoadmapVolume& volume,
+                                                    std::vector<rtr::Box> scene_boxes)
+{
+  // occupancy box id and dimensions
+  // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
+  std::string box_id = "rapidplan_collision_box";
+  // TODO(henningkayser): parameterize box dimensions or generate from volume with accuracy parameter
+  double box_x = 0.02;
+  double box_y = 0.02;
+  double box_z = 0.02;
+
+  // Compute transform: world->volume
+  // world_to_volume points at the corner of the volume with minimal x,y,z
+  Eigen::Isometry3d world_to_base(planning_scene->getFrameTransform(volume.base_frame));
+  Eigen::Translation3d base_to_volume(volume.center.x - 0.5 * volume.dimensions.size[0],
+                                      volume.center.y - 0.5 * volume.dimensions.size[1],
+                                      volume.center.z - 0.5 * volume.dimensions.size[2]);
+  Eigen::Isometry3d world_to_volume = world_to_base * base_to_volume;
+
+  // create collision world and add box shape
+  collision_detection::CollisionWorldFCL world;
+  shapes::Box box(box_x, box_y, box_z);
+  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box), world_to_volume);
+
+  // extract collision world from planning scene
+  collision_detection::CollisionWorldConstPtr collision_world = planning_scene->getCollisionWorld();
+
+  // collision request and result
+  collision_detection::CollisionRequest request;
+  collision_detection::CollisionResult result;
+
+  // clear scene boxes vector
+  scene_boxes.resize(0);
+
+  // Loop over X/Y/Z coordinates and check for box collisions in the collision world
+  // TODO(henningkayser): adjust grid to odd volume dimensions
+  // TODO(henningkayser): More efficient implementations:
+  //                          * Iterate over collision objects and only sample local bounding boxes
+  //                          * Use octree search, since boxes can have variable sizes
+  // TODO(henningkayser): Do we need extra Box padding here?
+  for (double x = 0.0; x < volume.dimensions.size[0]; x += box_x)
+    for (double y = 0.0; y < volume.dimensions.size[1]; y += box_y)
+      for (double z = 0.0; z < volume.dimensions.size[2]; z += box_z)
+      {
+        world.getWorld()->moveObject(box_id, world_to_volume * Eigen::Translation3d(x, y, z));
+        collision_world->checkWorldCollision(request, result, world);
+        if (result.collision)
+          scene_boxes.push_back(rtr::Box(x, y, z, x + box_x, y + box_y, z + box_z));
+        result.clear();
+      }
 }
 }  // namespace rtr_moveit
 

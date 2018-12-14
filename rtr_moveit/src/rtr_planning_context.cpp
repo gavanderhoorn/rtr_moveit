@@ -41,6 +41,9 @@
 
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
+#include <rtr_moveit/rtr_conversions.h>
+
+#include <rtr_occupancy/Box.h>
 
 #include <moveit_msgs/Constraints.h>
 
@@ -102,8 +105,23 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
     return false;
   }
 
+  // convert collision scene
+  // TODO(henningkayser): Apply volume from roadmap config
+  RoadmapVolume volume;
+  volume.base_frame = "base_link";
+  volume.center.x = 0.1;
+  volume.center.y = 0.1;
+  volume.center.z = 0.1;
+  volume.dimensions.size[0] = 1.0;
+  volume.dimensions.size[1] = 1.0;
+  volume.dimensions.size[2] = 1.0;
+  std::vector<rtr::Box> occupancy_boxes;
+  // TODO(henningkayser): Make function return bool and check for result
+  planningSceneToRtrCollisionBoxes(planning_scene_, volume, occupancy_boxes);
+
   // start planning attempt
-  bool success = planner_interface_->solve(request_.group_name, request_.start_state, goal_pose, *res.trajectory_);
+  bool success = planner_interface_->solve(request_.group_name, request_.start_state, goal_pose, occupancy_boxes,
+                                           *res.trajectory_);
 
   // fill response
   res.planning_time_ = (ros::Time::now() - start_time).toSec();

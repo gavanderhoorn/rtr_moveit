@@ -44,6 +44,7 @@
 #include <moveit/macros/class_forward.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <rtr_moveit/rtr_planner_interface.h>
+#include <rtr_moveit/rtr_datatypes.h>
 
 namespace rtr_moveit
 {

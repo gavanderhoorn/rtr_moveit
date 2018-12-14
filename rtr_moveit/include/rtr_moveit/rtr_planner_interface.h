@@ -75,14 +75,16 @@ public:
 
   /** \brief Run planning attempt and generate a robot trajectory*/
   bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const geometry_msgs::Pose goal_pose, robot_trajectory::RobotTrajectory& trajectory);
+             const geometry_msgs::Pose goal_pose, const std::vector<rtr::Box>& occupancy_boxes,
+             robot_trajectory::RobotTrajectory& trajectory);
 
   // The PathPlanner does not support planning for specific goal states.
   // This behavior could be implemented by searching for the closest existing
   // states and calling FindPath with the corresponding state ids.
   // The solution could then be connected to the goal state by interpolation.
   bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const moveit_msgs::RobotState& goal_state, robot_trajectory::RobotTrajectory& trajectory);
+             const moveit_msgs::RobotState& goal_state, const std::vector<rtr::Box>& occupancy_boxes,
+             robot_trajectory::RobotTrajectory& trajectory);
 
 protected:
   /** \brief Initialize PathPlanner and HardwareInterface with a given roadmap identifier */
