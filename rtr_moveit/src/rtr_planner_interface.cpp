@@ -178,12 +178,12 @@ bool RTRPlannerInterface::prepareRoadmap(const std::string& roadmap, uint16_t& r
     return false;
   }
 
-  RoadmapSpecification roadmap_spec = roadmaps_[roadmap];
+  RoadmapFiles files = roadmaps_[roadmap].files;
 
   // verify that the roadmap is loaded in the PathPlanner
   if (roadmap != loaded_roadmap_)
   {
-    if (!planner_.LoadRoadmap(roadmap_spec.configs_file, roadmap_spec.edges_file, roadmap_spec.transforms_file))
+    if (!planner_.LoadRoadmap(files.configs, files.edges, files.transforms))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap " << roadmap << " in PathPlanner.");
       return false;
@@ -194,7 +194,7 @@ bool RTRPlannerInterface::prepareRoadmap(const std::string& roadmap, uint16_t& r
   if (!findRoadmapIndex(roadmap, roadmap_index))
   {
     // write roadmap and retrieve new roadmap index
-    if (!hardware_interface_.WriteRoadmap(roadmap_spec.occupancy_file, roadmap_index))
+    if (!hardware_interface_.WriteRoadmap(files.occupancy, roadmap_index))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Unable to write roadmap " << roadmap << " to hardware.");
       return false;

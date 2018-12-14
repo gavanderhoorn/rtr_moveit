@@ -48,6 +48,8 @@
 #include <rtrapi/PathPlanner.h>
 #include <rtrapi/HardwareInterface.h>
 
+#include <rtr_moveit/rtr_datatypes.h>
+
 #include <moveit/macros/class_forward.h>
 #include <moveit_msgs/RobotState.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
@@ -55,15 +57,6 @@
 namespace rtr_moveit
 {
 MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
-
-struct RoadmapSpecification
-{
-  std::string occupancy_file;
-  std::string region_file;
-  std::string edges_file;
-  std::string configs_file;
-  std::string transforms_file;
-};
 
 class RTRPlannerInterface
 {
