@@ -34,7 +34,6 @@ find_package(Eigen3 REQUIRED)
 ###################################
 catkin_package(
   CATKIN_DEPENDS
-    roscpp
     moveit_core
     pluginlib
     roscpp
@@ -116,7 +115,7 @@ install(
 #Mark plugin description file for installation
 install(
   FILES
-    rtr_moveit_plugin_description.xml
+    ${PROJECT}_plugin_description.xml
   DESTINATION
     ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
