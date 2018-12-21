@@ -112,7 +112,7 @@ bool RTRPlannerInterface::hasGroupConfig(const std::string& group_name) const
 }
 
 bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-                                const geometry_msgs::Pose goal_pose, const std::vector<rtr::Box>& occupancy_boxes,
+                                const geometry_msgs::Pose goal_pose, const std::vector<rtr::Voxel>& occupancy_voxels,
                                 robot_trajectory::RobotTrajectory& trajectory)
 {
   // TODO(henningkayser): function should be threadsave/mutex locked
@@ -132,7 +132,7 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
 
   // query collisions from board
   std::vector<uint8_t> collisions;
-  if (!hardware_interface_.CheckScene(occupancy_boxes, roadmap_index, collisions))
+  if (!hardware_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
   {
     ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
     return false;
@@ -160,7 +160,8 @@ bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs
 }
 
 bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-                                const moveit_msgs::RobotState& goal_state, const std::vector<rtr::Box>& occupancy_boxes,
+                                const moveit_msgs::RobotState& goal_state,
+                                const std::vector<rtr::Voxel>& occupancy_voxels,
                                 robot_trajectory::RobotTrajectory& trajectory)
 {
   // TODO(henningkayser): implement solve() with goal states

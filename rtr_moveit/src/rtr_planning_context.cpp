@@ -115,12 +115,12 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
   volume.dimensions.size[0] = 1.0;
   volume.dimensions.size[1] = 1.0;
   volume.dimensions.size[2] = 1.0;
-  std::vector<rtr::Box> occupancy_boxes;
+  std::vector<rtr::Voxel> occupancy_voxels;
   // TODO(henningkayser): Make function return bool and check for result
-  planningSceneToRtrCollisionBoxes(planning_scene_, volume, occupancy_boxes);
+  planningSceneToRtrCollisionVoxels(planning_scene_, volume, occupancy_voxels);
 
   // start planning attempt
-  bool success = planner_interface_->solve(request_.group_name, request_.start_state, goal_pose, occupancy_boxes,
+  bool success = planner_interface_->solve(request_.group_name, request_.start_state, goal_pose, occupancy_voxels,
                                            *res.trajectory_);
 
   // fill response

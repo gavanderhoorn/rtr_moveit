@@ -56,6 +56,9 @@
 #include <moveit/collision_detection/world.h>
 #include <moveit/collision_detection_fcl/collision_world_fcl.h>
 
+#include <rtr_moveit/rtr_datatypes.h>
+#include <rtr_occupancy/Voxel.h>
+
 namespace rtr_moveit
 {
 static inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
@@ -100,57 +103,79 @@ static inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
-static inline void planningSceneToRtrCollisionBoxes(const planning_scene::PlanningSceneConstPtr& planning_scene,
-                                                    const RoadmapVolume& volume,
-                                                    std::vector<rtr::Box> scene_boxes)
+static inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                                     const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions
   // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
-  // TODO(henningkayser): parameterize box dimensions or generate from volume with accuracy parameter
-  double box_x = 0.02;
-  double box_y = 0.02;
-  double box_z = 0.02;
+  double voxel_size = volume.voxel_size;
+  double x_length = volume.dimensions.size[0];
+  double y_length = volume.dimensions.size[1];
+  double z_length = volume.dimensions.size[2];
+
+  int x_voxels = x_length / voxel_size;
+  int y_voxels = y_length / voxel_size;
+  int z_voxels = z_length / voxel_size;
 
   // Compute transform: world->volume
   // world_to_volume points at the corner of the volume with minimal x,y,z
-  Eigen::Isometry3d world_to_base(planning_scene->getFrameTransform(volume.base_frame));
-  Eigen::Translation3d base_to_volume(volume.center.x - 0.5 * volume.dimensions.size[0],
-                                      volume.center.y - 0.5 * volume.dimensions.size[1],
-                                      volume.center.z - 0.5 * volume.dimensions.size[2]);
-  Eigen::Isometry3d world_to_volume = world_to_base * base_to_volume;
+  auto world_to_base(planning_scene->getFrameTransform(volume.base_frame));
+  Eigen::Translation3d base_to_volume(volume.center.x - 0.5 * x_length, volume.center.y - 0.5 * y_length,
+                                      volume.center.z - 0.5 * z_length);
+  auto world_to_volume = world_to_base * base_to_volume;
 
-  // create collision world and add box shape
+  // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
-  shapes::Box box(box_x, box_y, box_z);
-  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box), world_to_volume);
-
-  // extract collision world from planning scene
-  collision_detection::CollisionWorldConstPtr collision_world = planning_scene->getCollisionWorld();
+  shapes::Box box(voxel_size, voxel_size, voxel_size);
+  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
+                                world_to_volume *
+                                    Eigen::Translation3d(-0.5 * voxel_size, -0.5 * voxel_size, -0.5 * voxel_size));
 
   // collision request and result
   collision_detection::CollisionRequest request;
   collision_detection::CollisionResult result;
 
   // clear scene boxes vector
-  scene_boxes.resize(0);
+  voxels.resize(0);
 
-  // Loop over X/Y/Z coordinates and check for box collisions in the collision world
+  // x/y/z step transforms
+  Eigen::Affine3d x_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(voxel_size, 0, 0));
+  Eigen::Affine3d y_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, voxel_size, 0));
+  Eigen::Affine3d z_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, voxel_size));
+
+  // x/y reset transforms
+  Eigen::Affine3d y_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, -y_voxels * voxel_size, 0));
+  Eigen::Affine3d z_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, -z_voxels * voxel_size));
+
+  // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
   // TODO(henningkayser): adjust grid to odd volume dimensions
   // TODO(henningkayser): More efficient implementations:
   //                          * Iterate over collision objects and only sample local bounding boxes
   //                          * Use octree search, since boxes can have variable sizes
   // TODO(henningkayser): Do we need extra Box padding here?
-  for (double x = 0.0; x < volume.dimensions.size[0]; x += box_x)
-    for (double y = 0.0; y < volume.dimensions.size[1]; y += box_y)
-      for (double z = 0.0; z < volume.dimensions.size[2]; z += box_z)
+  for (uint16_t x = 0; x < x_voxels; x++)
+  {
+    world.getWorld()->moveObject(box_id, x_step);
+    for (uint16_t y = 0; y < y_voxels; y++)
+    {
+      world.getWorld()->moveObject(box_id, y_step);
+      for (uint16_t z = 0; z < z_voxels; z++)
       {
-        world.getWorld()->moveObject(box_id, world_to_volume * Eigen::Translation3d(x, y, z));
-        collision_world->checkWorldCollision(request, result, world);
+        world.getWorld()->moveObject(box_id, z_step);
+        planning_scene->getCollisionWorld()->checkWorldCollision(request, result, world);
         if (result.collision)
-          scene_boxes.push_back(rtr::Box(x, y, z, x + box_x, y + box_y, z + box_z));
-        result.clear();
+        {
+          voxels.push_back(rtr::Voxel(x, y, z));
+          result.clear();  // TODO(henningkayser): Is this really necessary?
+        }
       }
+      // move object back to z start
+      world.getWorld()->moveObject(box_id, z_reset);
+    }
+    // move object back to y start
+    world.getWorld()->moveObject(box_id, y_reset);
+  }
 }
 }  // namespace rtr_moveit
 
