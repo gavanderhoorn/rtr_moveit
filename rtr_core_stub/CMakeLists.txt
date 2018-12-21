@@ -45,7 +45,7 @@ include_directories(
 # Declare a C++ library with project namespace to avoid naming collision
 add_library(
   ${PROJECT_NAME}
-  src/path_planner_stub.cpp src/hardware_interface_stub.cpp
+  src/path_planner_stub.cpp src/hardware_interface_stub.cpp src/box.cpp src/voxel.cpp
 )
 
 # Specify libraries to link a library or executable target against
