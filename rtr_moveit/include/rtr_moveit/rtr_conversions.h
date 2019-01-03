@@ -61,7 +61,9 @@
 
 namespace rtr_moveit
 {
-static inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
+namespace
+{
+inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
 {
   // set position x/y/z
   rtr_transform[0] = pose.position.x;
@@ -76,7 +78,7 @@ static inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<floa
   rtr_transform[5] = euler_angles[2];
 }
 
-static inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
+inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
 {
   pose.position.x = rtr_transform[0];
   pose.position.y = rtr_transform[1];
@@ -85,7 +87,7 @@ static inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geome
   tf::quaternionTFToMsg(rotation, pose.orientation);
 }
 
-static inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
+inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
                                             const std::deque<unsigned int>& path_indices,
                                             trajectory_msgs::JointTrajectory& trajectory)
 {
@@ -103,7 +105,7 @@ static inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
-static inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
+inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
                                                      const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions
@@ -176,6 +178,7 @@ static inline void planningSceneToRtrCollisionVoxels(const planning_scene::Plann
     // move object back to y start
     world.getWorld()->moveObject(box_id, y_reset);
   }
+}
 }
 }  // namespace rtr_moveit
 
