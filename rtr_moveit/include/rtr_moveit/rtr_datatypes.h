@@ -44,15 +44,15 @@
 
 namespace rtr_moveit
 {
-typedef struct RoadmapVolume
+struct RoadmapVolume
 {
   std::string base_frame;
   geometry_msgs::Point center;
   shapes::Box dimensions;
   double voxel_size;
-} RoadmapVolume;
+};
 
-typedef struct RoadmapFiles
+struct RoadmapFiles
 {
   // TODO(henningkayser): Filetypes will change in the new API
   std::string occupancy;
@@ -60,13 +60,13 @@ typedef struct RoadmapFiles
   std::string edges;
   std::string configs;
   std::string transforms;
-} RoadmapFiles;
+};
 
-typedef struct RoadmapSpecification
+struct RoadmapSpecification
 {
   RoadmapFiles files;
   RoadmapVolume volume;
-} RoadmapSpecification;
+};
 }  // namespace rtr_moveit
 
 #endif  // RTR_MOVEIT_RTR_DATATYPES_H
