@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Stub implementation of RTRs occupancy voxel type
  */
 
 #include <rtr_occupancy/Voxel.h>

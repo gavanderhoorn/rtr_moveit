@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Stub implementation of RTRs occupancy Box type
  */
 
 #include <rtr_occupancy/Box.h>
