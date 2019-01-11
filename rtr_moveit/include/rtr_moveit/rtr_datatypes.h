@@ -49,7 +49,7 @@ struct RoadmapVolume
   std::string base_frame;
   geometry_msgs::Point center;
   shapes::Box dimensions;
-  double voxel_size;
+  double voxel_dimension;
 };
 
 struct RoadmapFiles

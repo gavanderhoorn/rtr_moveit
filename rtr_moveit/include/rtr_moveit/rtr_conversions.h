@@ -111,14 +111,14 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   // occupancy box id and dimensions
   // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
-  double voxel_size = volume.voxel_size;
+  double voxel_dimension = volume.voxel_dimension;
   double x_length = volume.dimensions.size[0];
   double y_length = volume.dimensions.size[1];
   double z_length = volume.dimensions.size[2];
 
-  int x_voxels = x_length / voxel_size;
-  int y_voxels = y_length / voxel_size;
-  int z_voxels = z_length / voxel_size;
+  int x_voxels = x_length / voxel_dimension;
+  int y_voxels = y_length / voxel_dimension;
+  int z_voxels = z_length / voxel_dimension;
 
   // Compute transform: world->volume
   // world_to_volume points at the corner of the volume with minimal x,y,z
@@ -129,10 +129,10 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
 
   // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
-  shapes::Box box(voxel_size, voxel_size, voxel_size);
+  shapes::Box box(voxel_dimension, voxel_dimension, voxel_dimension);
   world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
                                 world_to_volume *
-                                    Eigen::Translation3d(-0.5 * voxel_size, -0.5 * voxel_size, -0.5 * voxel_size));
+                                    Eigen::Translation3d(-0.5 * voxel_dimension, -0.5 * voxel_dimension, -0.5 * voxel_dimension));
 
   // collision request and result
   collision_detection::CollisionRequest request;
@@ -142,13 +142,13 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   voxels.resize(0);
 
   // x/y/z step transforms
-  Eigen::Affine3d x_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(voxel_size, 0, 0));
-  Eigen::Affine3d y_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, voxel_size, 0));
-  Eigen::Affine3d z_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, voxel_size));
+  Eigen::Affine3d x_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(voxel_dimension, 0, 0));
+  Eigen::Affine3d y_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, voxel_dimension, 0));
+  Eigen::Affine3d z_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, voxel_dimension));
 
   // x/y reset transforms
-  Eigen::Affine3d y_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, -y_voxels * voxel_size, 0));
-  Eigen::Affine3d z_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, -z_voxels * voxel_size));
+  Eigen::Affine3d y_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, -y_voxels * voxel_dimension, 0));
+  Eigen::Affine3d z_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, -z_voxels * voxel_dimension));
 
   // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
   // NOTE: This implementation is a prototype and will be replaced by more efficient methods as described below
