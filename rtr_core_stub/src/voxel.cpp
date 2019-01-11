@@ -41,19 +41,19 @@
 namespace rtr
 {
 // dummy constructor
-Voxel::Voxel(uint16_t _x, uint16_t _y, uint16_t _z)
+Voxel::Voxel(uint16_t x, uint16_t y, uint16_t z)
 {
-    x = _x;
-    y = _y;
-    z = _z;
+    x_ = x;
+    y_ = y;
+    z_ = z;
 }
 
 Voxel::Voxel() {}
 
 Voxel::Voxel(const Voxel& v)
 {
-    x = v.x;
-    y = v.y;
-    z = v.z;
+    x_ = v.x_;
+    y_ = v.y_;
+    z_ = v.z_;
 }
 }

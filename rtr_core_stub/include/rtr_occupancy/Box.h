@@ -12,8 +12,8 @@ class Box {
 public:
   Box();
   Box(const Box& b);
-  Box(uint16_t _x_min, uint16_t _y_min, uint16_t _z_min,
-      uint16_t _x_max, uint16_t _y_max, uint16_t _z_max);
+  Box(uint16_t x_min, uint16_t y_min, uint16_t z_min,
+      uint16_t x_max, uint16_t y_max, uint16_t z_max);
   Box(const Voxel& v);
   Box(const Voxel& v1, const Voxel& v2);
 
@@ -22,8 +22,8 @@ public:
   inline bool operator < (const Box &b) const;
   inline const Box& operator = (const Box& b);
   inline void Set(const Box& b);
-  inline void Set(uint16_t _x_min, uint16_t _y_min, uint16_t _z_min,
-                  uint16_t _x_max, uint16_t _y_max, uint16_t _z_max);
+  inline void Set(uint16_t x_min, uint16_t y_min, uint16_t z_min,
+                  uint16_t x_max, uint16_t y_max, uint16_t z_max);
   inline void Set(const Voxel& v);
   inline void Set(const Voxel& v1, const Voxel& v2);
 
@@ -36,8 +36,8 @@ public:
   inline bool Intersects(const Box& b) const;
   inline void Merge(const Box& box, Box& merged) const;
 
-  uint16_t x_min, y_min, z_min;
-  uint16_t x_max, y_max, z_max;
+  uint16_t x_min_, y_min_, z_min_;
+  uint16_t x_max_, y_max_, z_max_;
 };
 
 std::ostream& operator << (std::ostream& out, const Box& b);
@@ -46,22 +46,22 @@ std::ostream& operator << (std::ostream& out, const Box& b);
 ////////////////////////////////////////////////////////////////////////////////
 
 inline bool Box::operator == (const Box& b) const {
-  return b.x_min == x_min && b.x_max == x_max &&
-         b.y_min == y_min && b.y_max == y_max &&
-         b.z_min == z_min && b.z_max == z_max;
+  return b.x_min_ == x_min_ && b.x_max_ == x_max_ &&
+         b.y_min_ == y_min_ && b.y_max_ == y_max_ &&
+         b.z_min_ == z_min_ && b.z_max_ == z_max_;
 }
 
 
 inline bool Box::operator != (const Box& b) const {
-  return b.x_min != x_min || b.x_max != x_max ||
-         b.y_min != y_min || b.y_max != y_max ||
-         b.z_min != z_min || b.z_max != z_max;
+  return b.x_min_ != x_min_ || b.x_max_ != x_max_ ||
+         b.y_min_ != y_min_ || b.y_max_ != y_max_ ||
+         b.z_min_ != z_min_ || b.z_max_ != z_max_;
 }
 
 
 inline bool Box::operator < (const Box &b) const {
-  return std::tie(x_min, x_max, y_min, y_max, z_min, z_max) <
-         std::tie(b.x_min, b.x_max, b.y_min, b.y_max, b.z_min, b.z_max);
+  return std::tie(x_min_, x_max_, y_min_, y_max_, z_min_, z_max_) <
+         std::tie(b.x_min_, b.x_max_, b.y_min_, b.y_max_, b.z_min_, b.z_max_);
 }
 
 
@@ -72,60 +72,60 @@ inline const Box& Box::operator = (const Box& b) {
 
 
 inline void Box::Set(const Box& b) {
-  x_min = b.x_min;  y_min = b.y_min;  z_min = b.z_min;
-  x_max = b.x_max;  y_max = b.y_max;  z_max = b.z_max;
+  x_min_ = b.x_min_;  y_min_ = b.y_min_;  z_min_ = b.z_min_;
+  x_max_ = b.x_max_;  y_max_ = b.y_max_;  z_max_ = b.z_max_;
 }
 
 
-inline void Box::Set(uint16_t _x_min, uint16_t _y_min, uint16_t _z_min,
-                     uint16_t _x_max, uint16_t _y_max, uint16_t _z_max) {
-  x_min = _x_min;  y_min = _y_min;  z_min = _z_min;
-  x_max = _x_max;  y_max = _y_max;  z_max = _z_max;
+inline void Box::Set(uint16_t x_min, uint16_t y_min, uint16_t z_min,
+                     uint16_t x_max, uint16_t y_max, uint16_t z_max) {
+  x_min_ = x_min;  y_min_ = y_min;  z_min_ = z_min;
+  x_max_ = x_max;  y_max_ = y_max;  z_max_ = z_max;
 }
 
 
 inline void Box::Set(const Voxel& v) {
-  x_min = x_max = v.x;
-  y_min = y_max = v.y;
-  z_min = z_max = v.z;
+  x_min_ = x_max_ = v.x_;
+  y_min_ = y_max_ = v.y_;
+  z_min_ = z_max_ = v.z_;
 }
 
 
 inline void Box::Set(const Voxel& v1, const Voxel& v2) {
-  x_min = std::min(v1.x, v2.x);  x_max = std::max(v1.x, v2.x);
-  y_min = std::min(v1.y, v2.y);  y_max = std::max(v1.y, v2.y);
-  z_min = std::min(v1.z, v2.z);  z_max = std::max(v1.z, v2.z);
+  x_min_ = std::min(v1.x_, v2.x_);  x_max_ = std::max(v1.x_, v2.x_);
+  y_min_ = std::min(v1.y_, v2.y_);  y_max_ = std::max(v1.y_, v2.y_);
+  z_min_ = std::min(v1.z_, v2.z_);  z_max_ = std::max(v1.z_, v2.z_);
 }
 
 
 inline bool Box::Contains(const Box& b) const {
-  return b.x_min >= x_min && b.x_max <= x_max &&
-         b.y_min >= y_min && b.y_max <= y_max &&
-         b.z_min >= z_min && b.z_max <= z_max;
+  return b.x_min_ >= x_min_ && b.x_max_ <= x_max_ &&
+         b.y_min_ >= y_min_ && b.y_max_ <= y_max_ &&
+         b.z_min_ >= z_min_ && b.z_max_ <= z_max_;
 }
 
 
 inline bool Box::Intersects(const Voxel& v) const {
-  return v.x >= x_min && v.x <= x_max &&
-         v.y >= y_min && v.y <= y_max &&
-         v.z >= z_min && v.z <= z_max;
+  return v.x_ >= x_min_ && v.x_ <= x_max_ &&
+         v.y_ >= y_min_ && v.y_ <= y_max_ &&
+         v.z_ >= z_min_ && v.z_ <= z_max_;
 }
 
 
 inline bool Box::Intersects(const Box& b) const {
-  return !(x_max < b.x_min || b.x_max < x_min ||
-           y_max < b.y_min || b.y_max < y_min ||
-           z_max < b.z_min || b.z_max < z_min);
+  return !(x_max_ < b.x_min_ || b.x_max_ < x_min_ ||
+           y_max_ < b.y_min_ || b.y_max_ < y_min_ ||
+           z_max_ < b.z_min_ || b.z_max_ < z_min_);
 }
 
 
 inline void Box::Merge(const Box& box, Box& merged) const {
-  merged.x_min = std::min(x_min, box.x_min);
-  merged.x_max = std::max(x_max, box.x_max);
-  merged.y_min = std::min(y_min, box.y_min);
-  merged.y_max = std::max(y_max, box.y_max);
-  merged.z_min = std::min(z_min, box.z_min);
-  merged.z_max = std::max(z_max, box.z_max);
+  merged.x_min_ = std::min(x_min_, box.x_min_);
+  merged.x_max_ = std::max(x_max_, box.x_max_);
+  merged.y_min_ = std::min(y_min_, box.y_min_);
+  merged.y_max_ = std::max(y_max_, box.y_max_);
+  merged.z_min_ = std::min(z_min_, box.z_min_);
+  merged.z_max_ = std::max(z_max_, box.z_max_);
 }
 
 

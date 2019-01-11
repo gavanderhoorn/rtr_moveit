@@ -41,26 +41,26 @@
 namespace rtr
 {
 // dummy constructor
-Box::Box(uint16_t _x_min, uint16_t _y_min, uint16_t _z_min,
-    uint16_t _x_max, uint16_t _y_max, uint16_t _z_max)
+Box::Box(uint16_t x_min, uint16_t y_min, uint16_t z_min,
+    uint16_t x_max, uint16_t y_max, uint16_t z_max)
 {
-    x_min = _x_min;
-    y_min = _y_min;
-    z_min = _z_min;
-    x_max = _x_max;
-    y_max = _y_max;
-    z_max = _z_max;
+    x_min_ = x_min;
+    y_min_ = y_min;
+    z_min_ = z_min;
+    x_max_ = x_max;
+    y_max_ = y_max;
+    z_max_ = z_max;
 }
 
 Box::Box() {}
 
 Box::Box(const Box& b)
 {
-    x_min = b.x_min;
-    y_min = b.y_min;
-    z_min = b.z_min;
-    x_max = b.x_max;
-    y_max = b.y_max;
-    z_max = b.z_max;
+    x_min_ = b.x_min_;
+    y_min_ = b.y_min_;
+    z_min_ = b.z_min_;
+    x_max_ = b.x_max_;
+    y_max_ = b.y_max_;
+    z_max_ = b.z_max_;
 }
 }
