@@ -151,10 +151,11 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   Eigen::Affine3d z_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, -z_voxels * voxel_size));
 
   // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
-  // TODO(henningkayser): adjust grid to odd volume dimensions
+  // NOTE: This implementation is a prototype and will be replaced by more efficient methods as described below
   // TODO(henningkayser): More efficient implementations:
   //                          * Iterate over collision objects and only sample local bounding boxes
   //                          * Use octree search, since boxes can have variable sizes
+  // TODO(henningkayser): adjust grid to odd volume dimensions
   // TODO(henningkayser): Do we need extra Box padding here?
   for (uint16_t x = 0; x < x_voxels; x++)
   {
