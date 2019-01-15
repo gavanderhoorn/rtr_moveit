@@ -6,7 +6,7 @@ Description: A MoveIt! planner interface for RapidPlan by [Realtime Robotics](ht
 
 Developed by Henning Kayser at [PickNik Consulting](http://picknik.ai/)
 
-TODO(henningkayser@picknik.ai): fix Travis badge:
+Travis:
 [![Build Status](https://travis-ci.com/PickNikRobotics/rtr_moveit.svg?token=o9hPQnr2kShM9ckDs6J8&branch=master)](https://travis-ci.com/PickNikRobotics/rtr_moveit)
 
 ### Plugin Structure
