@@ -38,10 +38,10 @@ These instructions assume you are running on Ubuntu 16.04:
 
 1. [Install RapidPlan](http://rtr.ai/support/rapidplan-runtime-tutorial):
 
-> Note: RapidPlan is not released yet. The file rapid-plan-[14.04/16.04].deb can be downloaded from the tutorials.
+> Note: RapidPlan is not released yet. The file rapid-plan-16.04.deb can be downloaded from the tutorials.
 
         sudo apt-get install gdebi
-        sudo gdebi rapid-plan-[14.04/16.04].deb
+        sudo gdebi rapid-plan-16.04.deb
 
 1. Install rtr-toolkit packages:
 
