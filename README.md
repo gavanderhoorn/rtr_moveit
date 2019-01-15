@@ -36,6 +36,20 @@ These instructions assume you are running on Ubuntu 16.04:
 
         sudo apt-get install python-wstool python-catkin-tools
 
+1. [Install RapidPlan](http://rtr.ai/support/rapidplan-runtime-tutorial):
+
+> Note: RapidPlan is not released yet. The file rapid-plan-[14.04/16.04].deb can be downloaded from the tutorials.
+
+        sudo apt-get install gdebi
+	sudo gdebi rapid-plan-[14.04/16.04].deb
+
+1. Install rtr-toolkit packages:
+
+> Note: The rtr-toolkit is not released yet. The archive [toolkit-debs.tar.gz](https://drive.google.com/open?id=0B02z3EC2o1eXbFcxT01OS3FmM2JGMmx0d2w3c0NJa0NWYUh3) contains all required *.deb files.
+
+        sudo dpkg -i *.deb
+	sudo apt-get -yf install
+
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/

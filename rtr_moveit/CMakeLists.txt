@@ -21,7 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
 	rosconsole
 	roscpp
 	roslint
-	rtr_core_stub
+	#rtr_core_stub
+	rtr-api
+	rtr-occupancy
 	tf
 	trajectory_msgs
 )

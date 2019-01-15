@@ -52,9 +52,11 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit_msgs/CollisionObject.h>
-#include <rtr_occupancy/Voxel.h>
 #include <srdfdom/model.h>
 #include <urdf_model/model.h>
+
+// RapidPlan
+#include <rtr-occupancy/Voxel.hpp>
 
 TEST(TestSuite, convertPoseAndTransform)
 {

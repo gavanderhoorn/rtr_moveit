@@ -57,7 +57,9 @@
 #include <moveit/collision_detection_fcl/collision_world_fcl.h>
 
 #include <rtr_moveit/rtr_datatypes.h>
-#include <rtr_occupancy/Voxel.h>
+
+// RapidPlan
+#include <rtr-occupancy/Voxel.hpp>
 
 namespace rtr_moveit
 {

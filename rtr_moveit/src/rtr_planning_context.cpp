@@ -43,7 +43,7 @@
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
 
-#include <rtr_occupancy/Box.h>
+#include <rtr-occupancy/Box.hpp>
 
 #include <moveit_msgs/Constraints.h>
 

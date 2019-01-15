@@ -38,7 +38,7 @@
 
 #include <limits>
 #include <gtest/gtest.h>
-#include <rtrapi/HardwareInterface.h>
+#include <rtr-api/HardwareInterface.hpp>
 
 TEST(TestSuite, checkHardware)
 {

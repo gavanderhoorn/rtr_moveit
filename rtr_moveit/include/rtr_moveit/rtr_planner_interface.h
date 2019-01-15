@@ -45,8 +45,8 @@
 
 #include <ros/ros.h>
 
-#include <rtrapi/PathPlanner.h>
-#include <rtrapi/HardwareInterface.h>
+#include <rtr-api/PathPlanner.hpp>
+#include <rtr-api/HardwareInterface.hpp>
 
 #include <rtr_moveit/rtr_datatypes.h>
 
