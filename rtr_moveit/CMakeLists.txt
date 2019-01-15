@@ -21,7 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
 	rosconsole
 	roscpp
 	roslint
-	#rtr_core_stub
 	rtr-api
 	rtr-occupancy
 	tf
@@ -39,7 +38,6 @@ catkin_package(
     moveit_core
     pluginlib
     roscpp
-    rtr_core_stub
   INCLUDE_DIRS
     include
   LIBRARIES

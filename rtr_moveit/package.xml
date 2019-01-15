@@ -42,7 +42,7 @@
   <test_depend>rosunit</test_depend>
 
   <build_export_depend>moveit_core</build_export_depend>
-  <build_export_depend>rtr_core_stub</build_export_depend>
+  <build_export_depend>rtr-api</build_export_depend>
   <build_export_depend>pluginlib</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
 
