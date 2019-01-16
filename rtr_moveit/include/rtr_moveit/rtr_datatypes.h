@@ -67,6 +67,13 @@ struct RoadmapSpecification
   RoadmapFiles files;
   RoadmapVolume volume;
 };
+
+struct GroupConfig
+{
+  std::string group_name;
+  std::string default_roadmap;
+  std::vector<std::string> roadmaps;
+};
 }  // namespace rtr_moveit
 
 #endif  // RTR_MOVEIT_RTR_DATATYPES_H

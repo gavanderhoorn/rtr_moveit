@@ -47,10 +47,9 @@ namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planner_interface";
 
-RTRPlannerInterface::RTRPlannerInterface()
+RTRPlannerInterface::RTRPlannerInterface(const robot_model::RobotModelConstPtr& kmodel, const ros::NodeHandle& nh)
+  : nh_(nh), kmodel_(kmodel)
 {
-  // load parameters
-  // TODO(henningkayser) implement parameter lookup
 }
 
 RTRPlannerInterface::~RTRPlannerInterface()

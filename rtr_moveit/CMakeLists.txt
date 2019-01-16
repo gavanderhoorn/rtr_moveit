@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 	roslint
 	rtr-api
 	rtr-occupancy
+	rosparam_shortcuts
 	tf
 	trajectory_msgs
 )

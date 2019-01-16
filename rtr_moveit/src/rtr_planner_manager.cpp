@@ -45,6 +45,11 @@
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 
+// ROS parameter loading
+#include <rosparam_shortcuts/rosparam_shortcuts.h>
+#include <ros/package.h>
+#include <boost/filesystem.hpp>
+
 namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planner_manager";
@@ -52,20 +57,29 @@ const std::string LOGNAME = "rtr_planner_manager";
 class RTRPlannerManager : public planning_interface::PlannerManager
 {
 public:
-  RTRPlannerManager() : planning_interface::PlannerManager(), planner_interface_(new RTRPlannerInterface())
+  RTRPlannerManager() : planning_interface::PlannerManager(), nh_("~")
   {
   }
 
   /** \brief Initializes the planner interface and load parameters */
   bool initialize(const robot_model::RobotModelConstPtr& model, const std::string& ns)
   {
+    // load config
+    loadRoadmapConfigurations(model->getJointModelGroupNames());
+    if (group_configs_.empty())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configuration from config file.");
+      return false;
+    }
+
+    // initialize planner
+    planner_interface_.reset(new RTRPlannerInterface(model, nh_));
     if (!planner_interface_->initialize())
     {
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");
       return false;
     }
 
-    // TODO(henningkayser@picknik.ai): handle groups in RobotModel
     return true;
   }
 
@@ -113,11 +127,85 @@ public:
     algs[0] = "RapidPlan";
   }
 
-  /** \brief Applies the given planner configuration to the planner */
-  void setPlannerConfigurations(const planning_interface::PlannerConfigurationMap& pconfig)
+  void loadRoadmapConfigurations(const std::vector<std::string>& group_names)
   {
-    // TODO(henningkayser@picknik.ai): implement setPlannerConfiguration()
-    ROS_ASSERT_MSG(false, "function not implemented.");
+    // load group configs
+    group_configs_.clear();
+    std::set<std::string> roadmap_ids;
+    for (const std::string& group_name : group_names)
+    {
+      if (!nh_.hasParam(group_name))
+      {
+        ROS_INFO_STREAM_NAMED(LOGNAME, "No roadmap specification found for goup " << group_name);
+        continue;
+      }
+
+      // create new group config
+      GroupConfig config;
+      config.group_name = group_name;
+      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/default_roadmap", config.default_roadmap);
+      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/roadmaps", config.roadmaps);
+
+      // check if default roadmap is set
+      if (!config.default_roadmap.empty())
+        roadmap_ids.insert(config.default_roadmap);
+      // check if any roadmap is configured
+      else if(config.roadmaps.empty())
+      {
+        ROS_INFO_STREAM("Leaving out group " << group_name << ", no roadmaps are specified in the config file.");
+        continue;
+      }
+      else
+        ROS_WARN_STREAM("No default roadmap specified for group " << group_name);
+
+      // collect roadmap ids
+      for (const std::string& roadmap_id : config.roadmaps)
+        roadmap_ids.insert(roadmap_id);
+
+      // add group config
+      group_configs_[group_name] = config;
+    }
+
+    // load default configs
+    std::string default_roadmaps_package;
+    std::string default_roadmaps_directory;
+    rosparam_shortcuts::get(LOGNAME, nh_, "default_configs/roadmaps_package", default_roadmaps_package);
+    rosparam_shortcuts::get(LOGNAME, nh_, "default_configs/roadmaps_directory", default_roadmaps_directory);
+    if (ros::package::getPath(default_roadmaps_package).empty())
+      ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to find default roadmaps package '" << default_roadmaps_package << "'");
+
+    // load roadmap specifications
+    roadmaps_.clear();
+    for (const std::string& roadmap_id : roadmap_ids)
+    {
+      // look for non-default parameters
+      std::string roadmap_config = "roadmaps/" + roadmap_id;
+      std::string package = nh_.param(roadmap_config + "/package", default_roadmaps_package);
+      std::string directory = nh_.param(roadmap_config + "/directory", default_roadmaps_directory);
+      std::string filename = nh_.param(roadmap_config + "/filename", roadmap_id);
+
+      // check if roadmap file parameters are valid
+      std::string package_path = ros::package::getPath(package);
+      std::string roadmap_file = package_path + "/" + directory + "/" + filename + ".og";
+      if ( package_path.empty() || directory.empty() || filename.empty() )
+      {
+        ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to resolve filename for roadmap '" << roadmap_id << "': " << roadmap_file);
+        continue;
+      }
+
+      // check if file exists
+      if (!boost::filesystem::exists(roadmap_file))
+      {
+        ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to locate file for roadmap '" << roadmap_id << "' at: " << roadmap_file );
+        continue;
+      }
+
+      // add new roadmap spec
+      RoadmapSpecification spec;
+      spec.files.occupancy = roadmap_file;
+      roadmaps_[roadmap_id] = spec;
+      ROS_INFO_STREAM_NAMED(LOGNAME, "Found roadmap '" << roadmap_id << "' at: " << roadmap_file);
+    }
   }
 
   /** \brief Returns a configured planning context for a given planning scene and motion plan request */
@@ -125,6 +213,7 @@ public:
                                                             const planning_interface::MotionPlanRequest& req,
                                                             moveit_msgs::MoveItErrorCodes& error_code) const
   {
+    // TODO(henningkayser): retrieve group config and roadmap specs and pass them to the planning context
     RTRPlanningContext context("rtr_planning_context", req.group_name, planner_interface_);
     context.setMotionPlanRequest(req);
     context.setPlanningScene(planning_scene);
@@ -132,8 +221,14 @@ public:
   }
 
 private:
+  ros::NodeHandle nh_;
+
   // The RapidPlan wrapper interface
-  const RTRPlannerInterfacePtr planner_interface_;
+  RTRPlannerInterfacePtr planner_interface_;
+
+  // group and roadmap configurations
+  std::map<std::string, GroupConfig> group_configs_;
+  std::map<std::string, RoadmapSpecification> roadmaps_;
 };
 }  // namespace rtr_moveit
 
