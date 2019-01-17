@@ -188,26 +188,36 @@ public:
       std::string directory = nh_.param(roadmap_config + "/directory", default_roadmaps_directory);
       std::string filename = nh_.param(roadmap_config + "/filename", roadmap_id);
 
-      // check if roadmap file parameters are valid
+      // skip roadmap if package is invalid
       std::string package_path = ros::package::getPath(package);
-      std::string roadmap_file = package_path + "/" + directory + "/" + filename + ".og";
-      if ( package_path.empty() || directory.empty() || filename.empty() )
+      if(package_path.empty())
       {
-        ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to resolve filename for roadmap '" << roadmap_id << "': " << roadmap_file);
+        std::string skip_roadmap_message = "Skipping roadmap '" + roadmap_id + "': ";
+        if (package != default_roadmaps_package)
+          ROS_WARN_STREAM_NAMED(LOGNAME, skip_roadmap_message << "invalid package '" << package << "'");
+        else
+          ROS_WARN_STREAM_NAMED(LOGNAME, skip_roadmap_message << "invalid default package");
         continue;
       }
+
+      // resolve roadmap file
+      boost::filesystem::path roadmap_file(package_path);
+      roadmap_file.append(directory);
+      roadmap_file.append(filename);
+      if(!roadmap_file.has_extension())
+        roadmap_file.replace_extension(".og");
 
       // check if file exists
       if (!boost::filesystem::exists(roadmap_file))
       {
-        ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to locate file for roadmap '" << roadmap_id << "' at: " << roadmap_file );
+        ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to locate file for roadmap '" << roadmap_id << "' at: " << roadmap_file);
         continue;
       }
 
       // add new roadmap spec
       RoadmapSpecification spec;
       spec.roadmap_id = roadmap_id;
-      spec.files.occupancy = roadmap_file;
+      spec.files.occupancy = roadmap_file.c_str();
       roadmaps_[roadmap_id] = spec;
       ROS_INFO_STREAM_NAMED(LOGNAME, "Found roadmap '" << roadmap_id << "' at: " << roadmap_file);
     }
