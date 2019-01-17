@@ -62,10 +62,10 @@ public:
   }
 
   /** \brief Initializes the planner interface and load parameters */
-  bool initialize(const robot_model::RobotModelConstPtr& model, const std::string& ns)
+  bool initialize(const robot_model::RobotModelConstPtr& robot_model, const std::string& ns)
   {
     // load config
-    loadRoadmapConfigurations(model->getJointModelGroupNames());
+    loadRoadmapConfigurations(robot_model->getJointModelGroupNames());
     if (group_configs_.empty() || roadmaps_.empty())
     {
       ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configurations from config file.");
@@ -73,7 +73,7 @@ public:
     }
 
     // initialize planner
-    planner_interface_.reset(new RTRPlannerInterface(model, nh_));
+    planner_interface_.reset(new RTRPlannerInterface(robot_model, nh_));
     if (!planner_interface_->initialize())
     {
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");
