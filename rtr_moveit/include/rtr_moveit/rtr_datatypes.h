@@ -64,15 +64,17 @@ struct RoadmapFiles
 
 struct RoadmapSpecification
 {
+  std::string roadmap_id;
   RoadmapFiles files;
   RoadmapVolume volume;
 };
 
+// Configuration for a MoveIt! planning group
 struct GroupConfig
 {
   std::string group_name;
-  std::string default_roadmap;
-  std::vector<std::string> roadmaps;
+  std::string default_roadmap_id;
+  std::set<std::string> roadmap_ids;
 };
 }  // namespace rtr_moveit
 

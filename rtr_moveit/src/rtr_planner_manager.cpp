@@ -66,9 +66,9 @@ public:
   {
     // load config
     loadRoadmapConfigurations(model->getJointModelGroupNames());
-    if (group_configs_.empty())
+    if (group_configs_.empty() || roadmaps_.empty())
     {
-      ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configuration from config file.");
+      ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configurations from config file.");
       return false;
     }
 
@@ -143,24 +143,28 @@ public:
       // create new group config
       GroupConfig config;
       config.group_name = group_name;
-      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/default_roadmap", config.default_roadmap);
-      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/roadmaps", config.roadmaps);
+      std::vector<std::string> group_roadmap_ids;
+      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/default_roadmap", config.default_roadmap_id);
+      rosparam_shortcuts::get(LOGNAME, nh_, group_name + "/roadmaps", group_roadmap_ids);
 
       // check if default roadmap is set
-      if (!config.default_roadmap.empty())
-        roadmap_ids.insert(config.default_roadmap);
-      // check if any roadmap is configured
-      else if(config.roadmaps.empty())
+      if (!config.default_roadmap_id.empty())
+        config.roadmap_ids.insert(config.default_roadmap_id);
+      else
+        ROS_WARN_STREAM("No default roadmap specified for group " << group_name);
+
+      // add specified roadmap names
+      config.roadmap_ids.insert(group_roadmap_ids.begin(), group_roadmap_ids.end());
+
+      // leave out group if no roadmap was found
+      if(config.roadmap_ids.empty())
       {
         ROS_INFO_STREAM("Leaving out group " << group_name << ", no roadmaps are specified in the config file.");
         continue;
       }
-      else
-        ROS_WARN_STREAM("No default roadmap specified for group " << group_name);
 
-      // collect roadmap ids
-      for (const std::string& roadmap_id : config.roadmaps)
-        roadmap_ids.insert(roadmap_id);
+      // add new roadmap ids
+      roadmap_ids.insert(config.roadmap_ids.begin(), config.roadmap_ids.end());
 
       // add group config
       group_configs_[group_name] = config;
@@ -202,6 +206,7 @@ public:
 
       // add new roadmap spec
       RoadmapSpecification spec;
+      spec.roadmap_id = roadmap_id;
       spec.files.occupancy = roadmap_file;
       roadmaps_[roadmap_id] = spec;
       ROS_INFO_STREAM_NAMED(LOGNAME, "Found roadmap '" << roadmap_id << "' at: " << roadmap_file);
