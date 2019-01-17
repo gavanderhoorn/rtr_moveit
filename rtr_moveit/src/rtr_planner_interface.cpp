@@ -47,8 +47,8 @@ namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planner_interface";
 
-RTRPlannerInterface::RTRPlannerInterface(const robot_model::RobotModelConstPtr& kmodel, const ros::NodeHandle& nh)
-  : nh_(nh), kmodel_(kmodel)
+RTRPlannerInterface::RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh)
+  : nh_(nh), robot_model_(robot_model)
 {
 }
 

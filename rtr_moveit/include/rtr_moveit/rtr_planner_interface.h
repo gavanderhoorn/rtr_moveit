@@ -47,7 +47,6 @@
 
 #include <rtr-api/PathPlanner.hpp>
 #include <rtr-api/HardwareInterface.hpp>
-//#include <rtr-core/OccupancyFile.hpp>
 
 #include <rtr_moveit/rtr_datatypes.h>
 
@@ -62,7 +61,7 @@ MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 class RTRPlannerInterface
 {
 public:
-  RTRPlannerInterface(const robot_model::RobotModelConstPtr& kmodel, const ros::NodeHandle& nh);
+  RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh);
   virtual ~RTRPlannerInterface();
 
   /** \brief Initialize the HardwareInterface */
@@ -111,7 +110,7 @@ private:
   }
 
   ros::NodeHandle nh_;
-  robot_model::RobotModelConstPtr kmodel_;
+  robot_model::RobotModelConstPtr robot_model_;
 
   // RapidPlan interfaces
   rtr::HardwareInterface hardware_interface_;
