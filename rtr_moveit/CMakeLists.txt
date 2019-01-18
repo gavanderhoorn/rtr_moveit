@@ -135,6 +135,7 @@ if(CATKIN_ENABLE_TESTING)
     ${catkin_LIBRARIES}
   )
 
+  if(NOT CATKIN_DISABLE_HARDWARE_TEST)
   add_rostest_gtest(rapidplan_test
 	  test/rapidplan.test
 	  test/rapidplan_test.cpp)
@@ -142,6 +143,7 @@ if(CATKIN_ENABLE_TESTING)
     ${PROJECT_NAME}
     ${catkin_LIBRARIES}
   )
+  endif()
 
 endif()
 

@@ -218,7 +218,7 @@ travis_run source devel/setup.bash;
 # done
 
 # Run catkin package tests
-travis_run catkin run_tests --no-deps rtr_moveit
+travis_run catkin run_tests -DCATKIN_DISABLE_HARDWARE_TEST=1 --no-deps rtr_moveit
 
 # Show test results summary and throw error if necessary
 travis_run catkin_test_results build/rtr_moveit
