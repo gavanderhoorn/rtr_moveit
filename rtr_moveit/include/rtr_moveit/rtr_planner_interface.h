@@ -40,8 +40,9 @@
 #define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 
 #include <deque>
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 
 #include <ros/ros.h>
 

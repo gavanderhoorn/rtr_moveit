@@ -39,6 +39,9 @@
 #ifndef RTR_MOVEIT_RTR_DATATYPES_H
 #define RTR_MOVEIT_RTR_DATATYPES_H
 
+#include <set>
+#include <string>
+
 #include <geometry_msgs/Point.h>
 #include <geometric_shapes/shapes.h>
 

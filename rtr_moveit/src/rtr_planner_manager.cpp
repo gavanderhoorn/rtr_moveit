@@ -36,6 +36,9 @@
  * Desc: henningkayser@picknik.ai
  */
 
+
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -157,7 +160,7 @@ public:
       config.roadmap_ids.insert(group_roadmap_ids.begin(), group_roadmap_ids.end());
 
       // leave out group if no roadmap was found
-      if(config.roadmap_ids.empty())
+      if (config.roadmap_ids.empty())
       {
         ROS_INFO_STREAM("Leaving out group " << group_name << ", no roadmaps are specified in the config file.");
         continue;
@@ -190,7 +193,7 @@ public:
 
       // skip roadmap if package is invalid
       std::string package_path = ros::package::getPath(package);
-      if(package_path.empty())
+      if (package_path.empty())
       {
         std::string skip_roadmap_message = "Skipping roadmap '" + roadmap_id + "': ";
         if (package != default_roadmaps_package)
@@ -204,7 +207,7 @@ public:
       boost::filesystem::path roadmap_file(package_path);
       roadmap_file.append(directory);
       roadmap_file.append(filename);
-      if(!roadmap_file.has_extension())
+      if (!roadmap_file.has_extension())
         roadmap_file.replace_extension(".og");
 
       // check if file exists

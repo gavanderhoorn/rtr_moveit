@@ -42,6 +42,7 @@
 #include <array>
 #include <cmath>
 #include <deque>
+#include <string>
 #include <vector>
 
 #include <Eigen/Geometry>
@@ -132,9 +133,9 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
   shapes::Box box(voxel_dimension, voxel_dimension, voxel_dimension);
+  double voxel_offset = - 0.5 * voxel_dimension;
   world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
-                                world_to_volume *
-                                    Eigen::Translation3d(-0.5 * voxel_dimension, -0.5 * voxel_dimension, -0.5 * voxel_dimension));
+                                world_to_volume * Eigen::Translation3d(voxel_offset, voxel_offset, voxel_offset));
 
   // collision request and result
   collision_detection::CollisionRequest request;
@@ -182,7 +183,7 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
     world.getWorld()->moveObject(box_id, y_reset);
   }
 }
-}
+}  // namespace
 }  // namespace rtr_moveit
 
 #endif  // RTR_MOVEIT_RTR_CONVERSIONS_H
