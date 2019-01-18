@@ -41,11 +41,11 @@ These instructions assume you are running on Ubuntu 16.04:
 > Note: RapidPlan is not released yet. All dependencies are installed from .deb files stored the private git repo [rtr_moveit_deb_files](https://github.com/PickNikRobotics/rtr_moveit_deb_files.git).
 
         sudo apt-get install gdebi libstdc++6 ros-kinetic-pcl-ros ros-kinetic-trac-ik-lib
-	git clone https://github.com/PickNikRobotics/rtr_moveit_deb_files.git
+        git clone https://github.com/PickNikRobotics/rtr_moveit_deb_files.git
         sudo gdebi rtr_moveit_deb_files/rapidplan/rapid-plan-16.04.deb
         sudo dpkg -i rtr_moveit_deb_files/rtr_toolkit/ros-kinetic-*.deb
         sudo apt-get -yf install
-	rm -r rtr_moveit_deb_files
+        rm -r rtr_moveit_deb_files
 
 1. Re-use or create a catkin workspace:
 
@@ -73,6 +73,53 @@ These instructions assume you are running on Ubuntu 16.04:
 ## Run
 
 TODO(henningkayser@picknik.ai): Explain how to load and run this plugin
+
+### Roadmap Configuration
+
+A roadmap is represented by a single *.og file and a name identifier.
+The roadmap filepath is composed by the package path, the directory in the package and the filename.
+Default package and directory can be set by `default/roadmaps_package` and `default/roadmaps_directory`.
+The default filename is the name of the roadmap.
+
+Each group should have a default roadmap name specified under `group/default_roadmap`.
+Further roadmaps can be added as a list under `group/roadmaps`.
+
+Roadmaps where the files should not be resolved from the defaults can be configured under `roadmaps`.
+Here each roadmap can have specific entries for `filename,` `package` or `directory` that overwrite the defaults.
+The same pattern can be used when adding additional parameters later.
+This is also useful for creating aliases of the same roadmap with different configurations.
+
+A valid `rtr_planning.yaml` config has the following pattern:
+  
+```
+roadmaps:
+  roadmap_1:
+    filename: another_filename
+    directory: directory_B
+    # additional_param: param_y
+  roadmap_2:
+    package: package_B
+    
+default:
+    roadmaps_package: package_A
+    roadmaps_directory: directory_A
+    # additional_param: param_x
+
+group:
+  default_roadmap: roadmap_1
+  roadmaps:
+    - roadmap_2
+    - roadmap_3
+```
+
+roadmap_1: <package_A>/directory_B/another_filename.og  
+roadmap_2: <package_B>/directory_A/roadmap_2.og  
+roadmap_3: <package_A>/directory_A/roadmap_3.og  
+
+The parameter lookup iterates over all roadmap names of each group and loads all roadmap files that can be found.
+This makes the use of either `default` or `roadmaps` optional.
+Groups without any valid roadmaps are left out.
+If no group with a valid roadmap was found the plugin initialization fails with an error.
 
 ## Developers: Quick update code repositories
 
