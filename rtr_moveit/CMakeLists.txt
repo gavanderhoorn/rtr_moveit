@@ -21,9 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
 	rosconsole
 	roscpp
 	roslint
+	rosparam_shortcuts
 	rtr-api
 	rtr-occupancy
-	rosparam_shortcuts
 	tf
 	trajectory_msgs
 )
@@ -116,7 +116,7 @@ install(
 #Mark plugin description file for installation
 install(
   FILES
-    ${PROJECT}_plugin_description.xml
+    ${PROJECT_NAME}_plugin_description.xml
   DESTINATION
     ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
@@ -137,13 +137,13 @@ if(CATKIN_ENABLE_TESTING)
   )
 
   if(NOT CATKIN_DISABLE_HARDWARE_TEST)
-  add_rostest_gtest(rapidplan_test
-	  test/rapidplan.test
-	  test/rapidplan_test.cpp)
-  target_link_libraries(rapidplan_test
-    ${PROJECT_NAME}
-    ${catkin_LIBRARIES}
-  )
+    add_rostest_gtest(rapidplan_test
+  	  test/rapidplan.test
+  	  test/rapidplan_test.cpp)
+    target_link_libraries(rapidplan_test
+      ${PROJECT_NAME}
+      ${catkin_LIBRARIES}
+    )
   endif()
 
 endif()
