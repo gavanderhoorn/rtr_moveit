@@ -36,7 +36,6 @@
  * Desc: henningkayser@picknik.ai
  */
 
-
 #include <map>
 #include <set>
 #include <string>

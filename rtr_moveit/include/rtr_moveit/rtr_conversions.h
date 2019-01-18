@@ -91,8 +91,8 @@ inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msg
 }
 
 inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
-                                            const std::deque<unsigned int>& path_indices,
-                                            trajectory_msgs::JointTrajectory& trajectory)
+                                     const std::deque<unsigned int>& path_indices,
+                                     trajectory_msgs::JointTrajectory& trajectory)
 {
   trajectory.points.resize(path_indices.size());
   int joints_num = roadmap_states[0].size();
@@ -109,7 +109,7 @@ inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& road
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
 inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
-                                                     const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
+                                              const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions
   // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
@@ -133,7 +133,7 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
   shapes::Box box(voxel_dimension, voxel_dimension, voxel_dimension);
-  double voxel_offset = - 0.5 * voxel_dimension;
+  double voxel_offset = -0.5 * voxel_dimension;
   world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
                                 world_to_volume * Eigen::Translation3d(voxel_offset, voxel_offset, voxel_offset));
 
