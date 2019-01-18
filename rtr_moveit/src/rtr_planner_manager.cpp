@@ -175,8 +175,8 @@ public:
     // load default configs
     std::string default_roadmaps_package;
     std::string default_roadmaps_directory;
-    rosparam_shortcuts::get(LOGNAME, nh_, "default_configs/roadmaps_package", default_roadmaps_package);
-    rosparam_shortcuts::get(LOGNAME, nh_, "default_configs/roadmaps_directory", default_roadmaps_directory);
+    rosparam_shortcuts::get(LOGNAME, nh_, "default/roadmaps_package", default_roadmaps_package);
+    rosparam_shortcuts::get(LOGNAME, nh_, "default/roadmaps_directory", default_roadmaps_directory);
     if (ros::package::getPath(default_roadmaps_package).empty())
       ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to find default roadmaps package '" << default_roadmaps_package << "'");
 
