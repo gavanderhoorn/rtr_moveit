@@ -36,19 +36,16 @@ These instructions assume you are running on Ubuntu 16.04:
 
         sudo apt-get install python-wstool python-catkin-tools
 
-1. [Install RapidPlan](http://rtr.ai/support/rapidplan-runtime-tutorial):
+1. Install RapidPlan dependencies:
 
-> Note: RapidPlan is not released yet. The file rapid-plan-16.04.deb can be downloaded from the tutorials.
+> Note: RapidPlan is not released yet. All dependencies are installed from .deb files stored the private git repo [rtr_moveit_deb_files](https://github.com/PickNikRobotics/rtr_moveit_deb_files.git).
 
-        sudo apt-get install gdebi
-        sudo gdebi rapid-plan-16.04.deb
-
-1. Install rtr-toolkit packages:
-
-> Note: The rtr-toolkit is not released yet. The archive [toolkit-debs.tar.gz](https://drive.google.com/open?id=0B02z3EC2o1eXbFcxT01OS3FmM2JGMmx0d2w3c0NJa0NWYUh3) contains all required *.deb files.
-
-        sudo dpkg -i *.deb
+        sudo apt-get install gdebi libstdc++6 ros-kinetic-pcl-ros ros-kinetic-trac-ik-lib
+	git clone https://github.com/PickNikRobotics/rtr_moveit_deb_files.git
+        sudo gdebi rtr_moveit_deb_files/rapidplan/rapid-plan-16.04.deb
+        sudo dpkg -i rtr_moveit_deb_files/rtr_toolkit/ros-kinetic-*.deb
         sudo apt-get -yf install
+	rm -r rtr_moveit_deb_files
 
 1. Re-use or create a catkin workspace:
 
