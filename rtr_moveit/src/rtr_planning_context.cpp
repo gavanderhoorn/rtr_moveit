@@ -51,29 +51,17 @@ namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planning_context";
 
-// TODO(henningkayser): Move this to a an extra goal specification class
 // Short helper function to extract a goal pose from goal constraints.
 // This will be replaced by more sophisticated methods, that support
 // joint states and generate matching goal tolerances and weights.
-bool getGoalPose(const std::vector<moveit_msgs::Constraints>& goal_constraints, geometry_msgs::Pose& goal_pose)
+bool getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal)
 {
-  if (goal_constraints.size() != 1)
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal constraints. Should be 1.");
-    return false;
-  }
-  if (goal_constraints[0].position_constraints.size() != 1)
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of posiiton constraints. Should be 1.");
-    return false;
-  }
-  if (goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() != 1)
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal poses. Should be 1.");
-    return false;
-  }
-
-  goal_pose = goal_constraints[0].position_constraints[0].constraint_region.primitive_poses[0];
+  // TODO(henningkayser): process goal_constraints
+  geometry_msgs::Pose goal_pose;
+  goal_pose.position.x = 0.5;
+  goal_pose.position.z = 0.3;
+  goal_pose.orientation.w = 1.0;
+  poseMsgToRtr(goal_pose, goal.transform);
   return true;
 }
 
@@ -85,43 +73,29 @@ RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::strin
 
 bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
 {
-  // check planner interface
-  if (!planner_interface_->isReady())
-  {
-    if (!planner_interface_->initialize())
-    {
-      ROS_ERROR_NAMED(LOGNAME, "Unable to initialize planner!");
-      res.error_code_.val = res.error_code_.FAILURE;
-      return false;
-    }
-  }
   ros::Time start_time = ros::Time::now();
+  res.error_code_.val = res.error_code_.FAILURE;
 
-  // get goal pose
-  geometry_msgs::Pose goal_pose;
-  if (!getGoalPose(request_.goal_constraints, goal_pose))
-  {
-    res.error_code_.val = res.error_code_.FAILURE;
+  // this is always satisfied since getPlanningContext() would have failed otherwise
+  if (!has_roadmap_)
     return false;
-  }
+
+  // check planner interface
+  if (!planner_interface_->isReady() && !planner_interface_->initialize())
+    return false;
+
+  // create RapidPlanGoal;
+  RapidPlanGoal goal;
+  if (!getRapidPlanGoal(request_.goal_constraints, goal))
+    return false;
 
   // convert collision scene
-  // TODO(henningkayser): Apply volume from roadmap config
-  RoadmapVolume volume;
-  volume.base_frame = "base_link";
-  volume.center.x = 0.1;
-  volume.center.y = 0.1;
-  volume.center.z = 0.1;
-  volume.dimensions.size[0] = 1.0;
-  volume.dimensions.size[1] = 1.0;
-  volume.dimensions.size[2] = 1.0;
-  std::vector<rtr::Voxel> occupancy_voxels;
-  // TODO(henningkayser): Make function return bool and check for result
-  planningSceneToRtrCollisionVoxels(planning_scene_, volume, occupancy_voxels);
+  // TODO(henningkayser): Implement generic collision type for PCL and PlanningScene conversion
+  std::vector<rtr::Voxel> collision_voxels;
+  planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
-  // start planning attempt
-  bool success = planner_interface_->solve(request_.group_name, request_.start_state, goal_pose, occupancy_voxels,
-                                           *res.trajectory_);
+  // run planning attempt
+  bool success = planner_interface_->solve(roadmap_, request_.start_state, goal, collision_voxels, *res.trajectory_);
 
   // fill response
   res.planning_time_ = (ros::Time::now() - start_time).toSec();
@@ -150,7 +124,7 @@ void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
 
 void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
-  //TODO(henningkayser): move some checks and preparations to here
+  // TODO(henningkayser): move some checks and preparations to here
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   if (!has_roadmap_)
   {

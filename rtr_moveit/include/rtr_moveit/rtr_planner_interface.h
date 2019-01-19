@@ -41,6 +41,7 @@
 
 #include <deque>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -63,7 +64,11 @@ MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 struct RapidPlanGoal
 {
   // Two different goal types are supported
-  enum Type {STATE_IDS, TRANSFORM};
+  enum Type
+  {
+    STATE_IDS,
+    TRANSFORM
+  };
   Type type;
 
   // STATE_IDS: a list of target states in the roadmap
@@ -72,7 +77,7 @@ struct RapidPlanGoal
   // TRANSFORM: an endeffector transform to look for a target state
   rtr::Transform transform;
   rtr::Transform tolerance;  // joint tolerance of the target state
-  rtr::Transform weights;  // joint distance weights for ranking multiple solutions
+  rtr::Transform weights;    // joint distance weights for ranking multiple solutions
 };
 
 class RTRPlannerInterface
@@ -87,31 +92,20 @@ public:
   /** \brief Check if the HardwareInterface is available and the planner can receive requests */
   bool isReady() const;
 
-  /** \brief Verify there are roadmaps for a given group */
-  bool hasGroupConfig(const std::string& group_name) const;
-
-  /** \brief Run planning attempt and generate a robot trajectory*/
-  bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const geometry_msgs::Pose goal_pose, const std::vector<rtr::Voxel>& occupancy_boxes,
-             robot_trajectory::RobotTrajectory& trajectory);
-
-  // The PathPlanner does not support planning for specific goal states.
-  // This behavior could be implemented by searching for the closest existing
-  // states and calling FindPath with the corresponding state ids.
-  // The solution could then be connected to the goal state by interpolation.
-  bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const moveit_msgs::RobotState& goal_state, const std::vector<rtr::Voxel>& occupancy_boxes,
+  /** \brief Run planning attempt and generate a solution trajectory */
+  bool solve(const RoadmapSpecification& roadmap_spec, const moveit_msgs::RobotState& start_state,
+             const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
              robot_trajectory::RobotTrajectory& trajectory);
 
 protected:
-  /** \brief Initialize PathPlanner and HardwareInterface with a given roadmap identifier */
-  bool prepareRoadmap(const std::string& roadmap, uint16_t& roadmap_index);
-
   /** \brief Process waypoints and edges of the solution and create a joint trajectory */
   void processSolutionPath(const std::deque<unsigned int>& waypoints, const std::deque<unsigned int>& edges,
                            robot_trajectory::RobotTrajectory& trajectory) const;
 
 private:
+  /** \brief Initialize PathPlanner and HardwareInterface with a given roadmap identifier */
+  bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
+
   /** \brief Find the roadmap index for a given roadmap name */
   bool findRoadmapIndex(const std::string& roadmap_name, uint16_t& roadmap_index)
   {
@@ -128,6 +122,9 @@ private:
 
   ros::NodeHandle nh_;
   robot_model::RobotModelConstPtr robot_model_;
+
+  // mutex lock for thread-safe RapidPlan calls
+  std::mutex mutex_;
 
   // RapidPlan interfaces
   rtr::HardwareInterface hardware_interface_;
