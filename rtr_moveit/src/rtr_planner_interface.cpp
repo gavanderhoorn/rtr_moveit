@@ -86,14 +86,6 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
-  // TODO(henningkayser): Test latency of hardware calls and drop Connected() or Handshake() if necessary
-  // check connection
-  if (!hardware_interface_.Connected())
-  {
-    ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Hardware is not connected.");
-    return false;
-  }
-
   // try handshake
   if (!hardware_interface_.Handshake())
   {
