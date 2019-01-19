@@ -64,11 +64,16 @@ public:
   virtual bool solve(planning_interface::MotionPlanResponse& res);
   virtual bool solve(planning_interface::MotionPlanDetailedResponse& res);
 
+  void setRoadmap(const RoadmapSpecification& roadmap);
+  void configure(moveit_msgs::MoveItErrorCodes& error_code);
+
   virtual void clear();
   virtual bool terminate();
 
 private:
   const RTRPlannerInterfacePtr planner_interface_;
+  RoadmapSpecification roadmap_;
+  bool has_roadmap_ = false;
 };
 }  // namespace rtr_moveit
 

@@ -134,6 +134,31 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
   return false;
 }
 
+void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
+{
+  roadmap_ = roadmap_;
+  // TODO(henningkayser): load volume from roadmap config file
+  roadmap_.volume.base_frame = "base_link";
+  roadmap_.volume.center.x = 0.1;
+  roadmap_.volume.center.y = 0.1;
+  roadmap_.volume.center.z = 0.1;
+  roadmap_.volume.dimensions.size[0] = 1.0;
+  roadmap_.volume.dimensions.size[1] = 1.0;
+  roadmap_.volume.dimensions.size[2] = 1.0;
+  has_roadmap_ = true;
+}
+
+void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
+{
+  //TODO(henningkayser): move some checks and preparations to here
+  error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+  if (!has_roadmap_)
+  {
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << group_);
+    error_code.val = moveit_msgs::MoveItErrorCodes::PLANNING_FAILED;
+  }
+}
+
 void RTRPlanningContext::clear()
 {
 }
