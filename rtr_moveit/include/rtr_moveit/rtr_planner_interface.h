@@ -59,6 +59,22 @@ namespace rtr_moveit
 {
 MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 
+// A RapidPlan goal specification
+struct RapidPlanGoal
+{
+  // Two different goal types are supported
+  enum Type {STATE_IDS, TRANSFORM};
+  Type type;
+
+  // STATE_IDS: a list of target states in the roadmap
+  std::vector<uint> state_ids;
+
+  // TRANSFORM: an endeffector transform to look for a target state
+  rtr::Transform transform;
+  rtr::Transform tolerance;  // joint tolerance of the target state
+  rtr::Transform weights;  // joint distance weights for ranking multiple solutions
+};
+
 class RTRPlannerInterface
 {
 public:
