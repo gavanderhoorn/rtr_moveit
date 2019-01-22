@@ -129,8 +129,8 @@ if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
 
   add_rostest_gtest(rtr_conversions_test
-	  test/rtr_conversions.test
-	  test/rtr_conversions_test.cpp)
+    test/rtr_conversions.test
+    test/rtr_conversions_test.cpp)
   target_link_libraries(rtr_conversions_test
     ${PROJECT_NAME}
     ${catkin_LIBRARIES}
@@ -138,8 +138,8 @@ if(CATKIN_ENABLE_TESTING)
 
   if(NOT CATKIN_DISABLE_HARDWARE_TEST)
     add_rostest_gtest(rapidplan_test
-  	  test/rapidplan.test
-  	  test/rapidplan_test.cpp)
+      test/rapidplan.test
+      test/rapidplan_test.cpp)
     target_link_libraries(rapidplan_test
       ${PROJECT_NAME}
       ${catkin_LIBRARIES}
