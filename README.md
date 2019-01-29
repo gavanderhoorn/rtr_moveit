@@ -77,9 +77,9 @@ TODO(henningkayser@picknik.ai): Explain how to load and run this plugin
 ### Roadmap Configuration
 
 A roadmap is represented by a single *.og file and a name identifier.
-The roadmap filepath is composed by the package path, the directory in the package and the filename.
+The roadmap file path is composed by the package path, the directory in the package and the file name.
 Default package and directory can be set by `default/roadmaps_package` and `default/roadmaps_directory`.
-The default filename is the name of the roadmap.
+The default file name is the name of the roadmap.
 
 Each group should have a default roadmap name specified under `group/default_roadmap`.
 Further roadmaps can be added as a list under `group/roadmaps`.
@@ -96,14 +96,12 @@ roadmaps:
   roadmap_1:
     filename: another_filename
     directory: directory_B
-    # additional_param: param_y
   roadmap_2:
     package: package_B
     
 default:
     roadmaps_package: package_A
     roadmaps_directory: directory_A
-    # additional_param: param_x
 
 group:
   default_roadmap: roadmap_1
@@ -118,7 +116,7 @@ roadmap_3: <package_A>/directory_A/roadmap_3.og
 
 The parameter lookup iterates over all roadmap names of each group and loads all roadmap files that can be found.
 This makes the use of either `default` or `roadmaps` optional.
-Groups without any valid roadmaps are left out.
+Groups without any valid roadmaps are not available for planning.
 If no group with a valid roadmap was found the plugin initialization fails with an error.
 
 ## Developers: Quick update code repositories
