@@ -132,6 +132,19 @@ private:
    */
   bool initStartState(unsigned int& start_state_id);
 
+  /**
+   * Converts a path of rtr::Config waypoints to a robot trajectory.
+   * An assertion is thrown If joint_names and waypoints in solution_path have different sizes.
+   * @param solution_path - the waypoints of type rtr::Config
+   * @param reference_state - the reference robot state to use for the trajectory
+   * @param joint_names - the joint model names of reference_state matching to the waypoints in solution_path
+   * @param trajectory - returns the populated result trajectory
+   */
+  void processSolutionPath(const std::vector<rtr::Config>& solution_path,
+                           const robot_state::RobotState& reference_state,
+                           const std::vector<std::string>& joint_names,
+                           robot_trajectory::RobotTrajectory& trajectory);
+
   /** Connect a waypoint state to a robot trajectory using interpolation and collision checks in the
    *  planning scene.
    * @param trajectory - The trajectory to connect the waypoint to

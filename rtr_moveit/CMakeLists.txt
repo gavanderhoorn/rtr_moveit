@@ -69,6 +69,7 @@ include_directories(
 # Declare a C++ library with project namespace to avoid naming collision
 add_library(
   ${PROJECT_NAME}
+  src/occupancy_handler.cpp
   src/rtr_planner_interface.cpp
   src/rtr_planning_context.cpp
 )

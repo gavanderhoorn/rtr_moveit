@@ -58,9 +58,10 @@
 // rtr_moveit
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
-#include <rtr_moveit/rtr_conversions.h>
+#include <rtr_moveit/occupancy_handler.h>
 #include <rtr_moveit/roadmap_search.h>
 
+// RapidPlan
 #include <rtr-api/OGFileReader.hpp>
 
 namespace rtr_moveit
@@ -102,9 +103,10 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // prepare collision scene
-  // TODO(RTR-46): Implement generic collision type for PCL and PlanningScene conversion
-  std::vector<rtr::Voxel> collision_voxels;
-  planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
+  OccupancyData occupancy_data;
+  ros::NodeHandle nh;
+  OccupancyHandler occupancy_handler(nh, "");
+  occupancy_handler.fromPlanningScene(planning_scene_, occupancy_data);
 
   // initialize start state
   unsigned int start_state_id;
@@ -126,7 +128,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
 
     // run plan
     const RapidPlanGoal& goal = goals_[goal_pos];
-    if (planner_interface_->solve(roadmap_, start_state_id, goal, collision_voxels, timeout, solution_path))
+    if (planner_interface_->solve(roadmap_, start_state_id, goal, occupancy_data, timeout, solution_path))
     {
       if (solution_path.empty())
       {
@@ -137,7 +139,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
       // convert solution path to robot trajectory
       const robot_state::RobotState& reference_state = planning_scene_->getCurrentState();
       trajectory.reset(new robot_trajectory::RobotTrajectory(reference_state.getRobotModel(), group_));
-      pathRtrToRobotTrajectory(solution_path, reference_state, joint_model_names_, *trajectory);
+      processSolutionPath(solution_path, reference_state, joint_model_names_, *trajectory);
 
       // connect start state waypoint
       if (!connectWaypointToTrajectory(trajectory, start_state_, true))
@@ -180,6 +182,21 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
   res.description_.push_back("plan");
   //TODO(henningkayser): add more detailed descriptions for planning steps
   return res.error_code_.val == res.error_code_.SUCCESS;
+}
+
+void RTRPlanningContext::processSolutionPath(const std::vector<rtr::Config>& solution_path,
+                                             const robot_state::RobotState& reference_state,
+                                             const std::vector<std::string>& joint_names,
+                                             robot_trajectory::RobotTrajectory& trajectory)
+{
+  ROS_ASSERT_MSG(joint_names.size() == solution_path[0].size(), "Joint values don't match joint names");
+  for (const rtr::Config& joint_config : solution_path)
+  {
+    robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
+    for (std::size_t i = 0; i < joint_names.size(); i++)
+      robot_state->setJointPositions(joint_names[i], { (double)joint_config[i] });
+    trajectory.addSuffixWayPoint(robot_state, 0.1);
+  }
 }
 
 bool RTRPlanningContext::connectWaypointToTrajectory(const robot_trajectory::RobotTrajectoryPtr& trajectory,
@@ -301,7 +318,6 @@ bool RTRPlanningContext::initRapidPlanGoals(const std::vector<moveit_msgs::Const
 bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal,
                                           robot_state::RobotStatePtr& goal_state)
 {
-
   goal.type = RapidPlanGoal::Type::STATE_IDS;
 
   // initialize constraint samplers

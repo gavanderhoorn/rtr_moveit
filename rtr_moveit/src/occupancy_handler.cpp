@@ -33,69 +33,80 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: Conversion functions between MoveIt!/RapidPlan types
+ * Desc: Generation of occupancy data from pcl or planning scenes
  */
 
-#ifndef RTR_MOVEIT_RTR_CONVERSIONS_H
-#define RTR_MOVEIT_RTR_CONVERSIONS_H
+#include <rtr_moveit/occupancy_handler.h>
+#include <pcl_conversions/pcl_conversions.h>
 
-#include <array>
-#include <cmath>
-#include <deque>
-#include <string>
-#include <vector>
-
+// Eigen
 #include <Eigen/Geometry>
 
-#include <ros/ros.h>
-#include <ros/assert.h>
-#include <tf/transform_datatypes.h>
-#include <geometry_msgs/Pose.h>
-#include <trajectory_msgs/JointTrajectory.h>
-#include <moveit/planning_scene/planning_scene.h>
-#include <trajectory_msgs/JointTrajectory.h>
-#include <moveit/robot_state/robot_state.h>
-#include <geometric_shapes/shapes.h>
-
+// collision checks
 #include <moveit/collision_detection/world.h>
 #include <moveit/collision_detection_fcl/collision_world_fcl.h>
-
-#include <rtr_moveit/rtr_datatypes.h>
-#include <rtr-api/RapidPlanDataTypes.hpp>
+#include <geometric_shapes/shapes.h>
 
 // RapidPlan
 #include <rtr-occupancy/Voxel.hpp>
 
 namespace rtr_moveit
 {
-namespace
+const std::string LOGNAME = "occupancy_handler";
+OccupancyHandler::OccupancyHandler(const ros::NodeHandle& nh, const std::string& pcl_topic)
+  : nh_(nh), pcl_topic_(pcl_topic)
 {
-inline void pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
-                                     const robot_state::RobotState& reference_state,
-                                     const std::vector<std::string>& joint_names,
-                                     robot_trajectory::RobotTrajectory& trajectory)
-{
-  ROS_ASSERT_MSG(joint_names.size() == path[0].size(), "Joint values don't match joint names");
-  for (const rtr::Config& joint_config : path)
-  {
-    robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
-    for (std::size_t i = 0; i < joint_names.size(); ++i)
-      robot_state->setJointPositions(joint_names[i], { (double)joint_config[i] });
-    trajectory.addSuffixWayPoint(robot_state, 0.1);
-  }
 }
 
-/* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
-inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr planning_scene,
-                                              const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
+void OccupancyHandler::setVolumeRegion(const RoadmapVolume& roadmap_volume)
+{
+  volume_region_ = roadmap_volume;
+}
+
+void OccupancyHandler::setPointCloudTopic(const std::string& pcl_topic)
+{
+  pcl_topic_ = pcl_topic;
+}
+
+bool OccupancyHandler::fromPCL(OccupancyData& occupancy_data)
+{
+  // if point cloud is older than 100ms, get a new one
+  if (!shared_pcl_ptr_ ||  (ros::Time::now().toNSec() * 1000 - shared_pcl_ptr_->header.stamp > 100000))
+  {
+    std::unique_lock<std::mutex> lock(pcl_mtx_);
+    ros::Subscriber pcl_sub = nh_.subscribe(pcl_topic_, 1, &OccupancyHandler::pclCallback, this);
+    pcl_condition_.wait(lock, [&](){return pcl_ready_;});
+    pcl_ready_ = false;
+    pcl_sub.shutdown();
+  }
+
+  // get result
+  occupancy_data.type = OccupancyData::Type::POINT_CLOUD;
+  occupancy_data.point_cloud = shared_pcl_ptr_;
+  return occupancy_data.point_cloud != NULL;
+}
+
+void OccupancyHandler::pclCallback(const pcl::PCLPointCloud2ConstPtr& cloud_pcl2)
+{
+  std::unique_lock<std::mutex> lock(pcl_mtx_);
+  if (!shared_pcl_ptr_)
+    shared_pcl_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::fromPCLPointCloud2(*cloud_pcl2, *shared_pcl_ptr_);
+  pcl_ready_ = true;
+  lock.unlock();
+  pcl_condition_.notify_one();
+}
+
+bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                         OccupancyData& occupancy_data)
 {
   // occupancy box id and dimensions
   // TODO(RTR-57): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
-  double voxel_dimension = volume.voxel_dimension;
-  double x_length = volume.dimensions.size[0];
-  double y_length = volume.dimensions.size[1];
-  double z_length = volume.dimensions.size[2];
+  double voxel_dimension = volume_region_.voxel_dimension;
+  double x_length = volume_region_.dimensions.size[0];
+  double y_length = volume_region_.dimensions.size[1];
+  double z_length = volume_region_.dimensions.size[2];
 
   int x_voxels = x_length / voxel_dimension;
   int y_voxels = y_length / voxel_dimension;
@@ -103,9 +114,10 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
 
   // Compute transform: world->volume
   // world_to_volume points at the corner of the volume with minimal x,y,z
-  auto world_to_base(planning_scene->getFrameTransform(volume.base_frame));
-  Eigen::Translation3d base_to_volume(volume.center.x - 0.5 * x_length, volume.center.y - 0.5 * y_length,
-                                      volume.center.z - 0.5 * z_length);
+  auto world_to_base(planning_scene->getFrameTransform(volume_region_.base_frame));
+  Eigen::Translation3d base_to_volume(volume_region_.center.x - 0.5 * x_length,
+                                      volume_region_.center.y - 0.5 * y_length,
+                                      volume_region_.center.z - 0.5 * z_length);
   auto world_to_volume = world_to_base * base_to_volume;
 
   // create collision world and add voxel box shape one step outside the volume grid
@@ -113,14 +125,15 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   shapes::Box box(voxel_dimension, voxel_dimension, voxel_dimension);
   double voxel_offset = -0.5 * voxel_dimension;
   world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
-                                world_to_volume * Eigen::Translation3d(voxel_offset, voxel_offset, voxel_offset));
+      world_to_volume * Eigen::Translation3d(voxel_offset, voxel_offset, voxel_offset));
 
   // collision request and result
   collision_detection::CollisionRequest request;
   collision_detection::CollisionResult result;
 
   // clear scene boxes vector
-  voxels.resize(0);
+  occupancy_data.type = OccupancyData::Type::VOXELS;
+  occupancy_data.voxels.resize(0);
 
   // x/y/z step transforms
   Eigen::Affine3d x_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(voxel_dimension, 0, 0));
@@ -150,7 +163,7 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
         planning_scene->getCollisionWorld()->checkWorldCollision(request, result, world);
         if (result.collision)
         {
-          voxels.push_back(rtr::Voxel(x, y, z));
+          occupancy_data.voxels.push_back(rtr::Voxel(x, y, z));
           result.clear();  // TODO(RTR-57): Is this really necessary?
         }
       }
@@ -160,8 +173,6 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
     // move object back to y start
     world.getWorld()->moveObject(box_id, y_reset);
   }
+  return true;
 }
-}  // namespace
 }  // namespace rtr_moveit
-
-#endif  // RTR_MOVEIT_RTR_CONVERSIONS_H

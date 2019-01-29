@@ -50,7 +50,6 @@
 
 // rtr_moveit
 #include <rtr_moveit/rtr_planner_interface.h>
-#include <rtr_moveit/rtr_conversions.h>
 #include <rtr_moveit/roadmap_search.h>
 
 namespace rtr_moveit
@@ -122,12 +121,12 @@ bool RTRPlannerInterface::isReady() const
 }
 
 bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
-                                const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data,
                                 const double& timeout, std::vector<rtr::Config>& solution_path)
 {
   std::deque<unsigned int> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
-  bool success = solve(roadmap_spec, start_state_id, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
+  bool success = solve(roadmap_spec, start_state_id, goal, occupancy_data, timeout, roadmap_states, waypoints, edges);
   // TODO(RTR-53): verify waypoints and states? This should already be done in the PathPlanner.
   if (success)
   {
@@ -157,7 +156,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 }
 
 bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
-                                const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data,
                                 const double& timeout, std::vector<rtr::Config>& roadmap_states,
                                 std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges)
 {
@@ -178,7 +177,17 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     std::vector<uint8_t> collisions;
     if (rapidplan_interface_enabled_)
     {
-      if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
+      bool check_scene_success = false;
+      if (occupancy_data.type == OccupancyData::Type::POINT_CLOUD)
+        check_scene_success = rapidplan_interface_.CheckScene(occupancy_data.point_cloud, roadmap_index, collisions);
+      else if (occupancy_data.type == OccupancyData::Type::BOXES)
+        check_scene_success = rapidplan_interface_.CheckScene(occupancy_data.boxes, roadmap_index, collisions);
+      else if (occupancy_data.type == OccupancyData::Type::VOXELS)
+        check_scene_success = rapidplan_interface_.CheckScene(occupancy_data.voxels, roadmap_index, collisions);
+      else
+        ROS_WARN_NAMED(LOGNAME, "No type specified in occupancy data");
+
+      if (!check_scene_success)
       {
         ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
         return false;

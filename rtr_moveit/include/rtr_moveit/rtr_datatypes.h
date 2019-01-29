@@ -45,6 +45,11 @@
 #include <geometry_msgs/Point.h>
 #include <geometric_shapes/shapes.h>
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <rtr-occupancy/Voxel.hpp>
+#include <rtr-occupancy/Box.hpp>
+
 namespace rtr_moveit
 {
 struct RoadmapVolume
@@ -60,6 +65,15 @@ struct RoadmapSpecification
   std::string roadmap_id;
   std::string og_file;
   RoadmapVolume volume;
+};
+
+struct OccupancyData
+{
+  enum Type { POINT_CLOUD, BOXES, VOXELS };
+  Type type;
+  pcl::PointCloud<pcl::PointXYZ>::ConstPtr point_cloud;
+  std::vector<rtr::Box> boxes;
+  std::vector<rtr::Voxel> voxels;
 };
 
 // Configuration for a MoveIt! planning group
