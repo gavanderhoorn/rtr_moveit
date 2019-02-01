@@ -61,26 +61,28 @@ RTRPlannerInterface::~RTRPlannerInterface()
 
 bool RTRPlannerInterface::initialize()
 {
+  #if RAPID_PLAN_INTERFACE_ENABLED
   // check if hardware is connected
-  if (!hardware_interface_.Connected())
+  if (!rapidplan_interface_.Connected())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Hardware is not connected.");
     return false;
   }
 
   // try to initialize hardware
-  if (!hardware_interface_.Init())
+  if (!rapidplan_interface_.Init())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Failed to initialize Hardware.");
     return false;
   }
 
   // perform handshake
-  if (!hardware_interface_.Handshake())
+  if (!rapidplan_interface_.Handshake())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
     return false;
   }
+  #endif
 
   ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
   return true;
@@ -88,12 +90,14 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
+  #if RAPID_PLAN_INTERFACE_ENABLED
   // try handshake
-  if (!hardware_interface_.Handshake())
+  if (!rapidplan_interface_.Handshake())
   {
     ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Handshake failed.");
     return false;
   }
+  #endif
 
   ROS_DEBUG_NAMED(LOGNAME, "RapidPlan interface is ready.");
   return true;
@@ -118,19 +122,31 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     if (!prepareRoadmap(roadmap_spec, roadmap_index))
       return false;
 
-    // run collision check with HardwareInterface
+    // run collision check with RapidPlanInterface
     std::vector<uint8_t> collisions;
-    if (!hardware_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
+    #if RAPID_PLAN_INTERFACE_ENABLED
+    if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
     {
       ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
       return false;
     }
+    #endif
 
     // call PathPlanner
     if (goal.type == RapidPlanGoal::Type::TRANSFORM)
-      result = planner_.FindPath(start_id, goal.transform, collisions, goal.tolerance, goal.weights, waypoints, edges);
+    {
+      // TODO(henningkayser): move to conversions
+      rtr::Vec3 euler_angles;
+      goal.transform.R.GetEuler(euler_angles);
+      rtr::ToolPose tool_pose = { goal.transform.t[0], goal.transform.t[1], goal.transform.t[2],
+                                  euler_angles[0], euler_angles[1], euler_angles[2] };
+
+	    result = planner_.FindPath(start_id, tool_pose, collisions, goal.tolerance, goal.weights, waypoints, edges);
+    }
     else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
-      result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges);
+    {
+	    result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges);
+    }
   }  // SCOPED MUTEX UNLOCK
 
   // process result
@@ -163,16 +179,20 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
       return false;
     }
   }
-
   // check if roadmap is already written to hardware
   if (!findRoadmapIndex(roadmap_id, roadmap_index))
   {
+    #if RAPID_PLAN_INTERFACE_ENABLED
     // write roadmap and retrieve new roadmap index
-    if (!hardware_interface_.WriteRoadmap(files.occupancy, roadmap_index))
+    if (!rapidplan_interface_.WriteRoadmap(files.occupancy, roadmap_index))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_id << "' to RapidPlan MPU.");
       return false;
     }
+    #else
+    // if we don't use hardware, we increase the numbers
+    roadmap_id = roadmap_indices_.size();
+    #endif
     roadmap_indices_[roadmap_index] = roadmap_id;
   }
   ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_id << "'");

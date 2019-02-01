@@ -39,6 +39,9 @@
 #ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 #define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 
+// temporarily disable RapidPlanInterface
+#define RAPID_PLAN_INTERFACE_ENABLED 0
+
 #include <deque>
 #include <map>
 #include <mutex>
@@ -48,7 +51,12 @@
 #include <ros/ros.h>
 
 #include <rtr-api/PathPlanner.hpp>
-#include <rtr-api/HardwareInterface.hpp>
+#include <rtr-math/Pose.hpp>  // contains rtr::Transform
+#include <rtr-occupancy/Voxel.hpp>
+
+#if RAPID_PLAN_INTERFACE_ENABLED
+#include <rtr-api/RapidPlanInterface.hpp>
+#endif
 
 #include <rtr_moveit/rtr_datatypes.h>
 
@@ -76,8 +84,8 @@ struct RapidPlanGoal
 
   // TRANSFORM: an endeffector transform to look for a target state
   rtr::Transform transform;
-  rtr::Transform tolerance;  // joint tolerance of the target state
-  rtr::Transform weights;    // joint distance weights for ranking multiple solutions
+  std::array<float, 6> tolerance;  // joint tolerance of the target state
+  std::array<float, 6> weights;    // joint distance weights for ranking multiple solutions
 };
 
 class RTRPlannerInterface
@@ -86,10 +94,10 @@ public:
   RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh);
   virtual ~RTRPlannerInterface();
 
-  /** \brief Initialize the HardwareInterface */
+  /** \brief Initialize the RapidPlanInterface */
   bool initialize();
 
-  /** \brief Check if the HardwareInterface is available and the planner can receive requests */
+  /** \brief Check if the RapidPlanInterface is available and the planner can receive requests */
   bool isReady() const;
 
   /** \brief Run planning attempt and generate a solution trajectory */
@@ -103,7 +111,7 @@ protected:
                            robot_trajectory::RobotTrajectory& trajectory) const;
 
 private:
-  /** \brief Initialize PathPlanner and HardwareInterface with a given roadmap identifier */
+  /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
   bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
 
   /** \brief Find the roadmap index for a given roadmap name */
@@ -127,7 +135,10 @@ private:
   std::mutex mutex_;
 
   // RapidPlan interfaces
-  rtr::HardwareInterface hardware_interface_;
+  #if RAPID_PLAN_INTERFACE_ENABLED
+  rtr::RapidPlanInterface rapidplan_interface_;
+  #endif
+
   rtr::PathPlanner planner_;
 
   // available roadmap specifications
