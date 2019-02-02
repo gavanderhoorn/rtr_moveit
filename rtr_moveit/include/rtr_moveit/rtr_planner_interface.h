@@ -75,7 +75,8 @@ struct RapidPlanGoal
   enum Type
   {
     STATE_IDS,
-    TRANSFORM
+    TRANSFORM,
+    JOINT_STATE
   };
   Type type;
 
@@ -84,8 +85,11 @@ struct RapidPlanGoal
 
   // TRANSFORM: an endeffector transform to look for a target state
   rtr::Transform transform;
-  std::array<float, 6> tolerance;  // joint tolerance of the target state
-  std::array<float, 6> weights;    // joint distance weights for ranking multiple solutions
+  std::array<float, 6> tolerance;  // pose tolerance of the target state
+  std::array<float, 6> weights;    // pose distance weights for ranking multiple solutions
+
+  // JOINT_STATE
+  rtr::Config joint_state;
 };
 
 class RTRPlannerInterface
