@@ -56,12 +56,27 @@ const std::string LOGNAME = "rtr_planning_context";
 // joint states and generate matching goal tolerances and weights.
 bool getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal)
 {
-  // TODO(henningkayser): process goal_constraints
-  geometry_msgs::Pose goal_pose;
-  goal_pose.position.x = 0.5;
-  goal_pose.position.z = 0.3;
-  goal_pose.orientation.w = 1.0;
-  poseMsgToRtr(goal_pose, goal.transform);
+  if (goal_constraints.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Cannot extract goal from empty goal constraints");
+    return false;
+  }
+
+  moveit_msgs::Constraints goal_constraint = goal_constraints[0];
+  if (goal_constraint.joint_constraints.size() > 0)
+  {
+    //TODO(henningkayser): verify order of joint constraints
+    goal.type = RapidPlanGoal::Type::JOINT_STATE;
+    goal.joint_state.clear();
+    for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
+      goal.joint_state.push_back(joint_constraint.position);
+  }
+  else
+  {
+    //TODO(henningkayser): implement position goals
+    ROS_ERROR_NAMED(LOGNAME, "Failed to extract goal from constraints. Only joint constraints support is implemented.");
+    return false;
+  }
   return true;
 }
 
