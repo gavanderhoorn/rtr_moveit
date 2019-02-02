@@ -110,7 +110,7 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
 
 void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
 {
-  roadmap_ = roadmap_;
+  roadmap_ = roadmap;
   // TODO(henningkayser): load volume from roadmap config file
   roadmap_.volume.base_frame = "base_link";
   roadmap_.volume.center.x = 0.1;
