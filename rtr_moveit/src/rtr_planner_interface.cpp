@@ -200,7 +200,8 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
   // verify that the roadmap is loaded in the PathPlanner
   if (roadmap_id != loaded_roadmap_)
   {
-    if (!planner_.LoadRoadmap(files.configs, files.edges, files.transforms))
+    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << files.occupancy);
+    if (!planner_.LoadRoadmap(files.occupancy))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_id << "' to RapidPlan PathPlanner.");
       return false;
@@ -218,7 +219,7 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
     }
     #else
     // if we don't use hardware, we increase the numbers
-    roadmap_id = roadmap_indices_.size();
+    roadmap_index = roadmap_indices_.size();
     #endif
     roadmap_indices_[roadmap_index] = roadmap_id;
   }
