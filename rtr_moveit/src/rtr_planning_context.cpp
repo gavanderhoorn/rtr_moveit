@@ -49,8 +49,6 @@
 
 namespace rtr_moveit
 {
-const std::string LOGNAME = "rtr_planning_context";
-
 // Short helper function to extract a goal pose from goal constraints.
 // This will be replaced by more sophisticated methods, that support
 // joint states and generate matching goal tolerances and weights.
@@ -95,13 +93,14 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
   if (!has_roadmap_)
     return false;
 
-  // check planner interface
-  if (!planner_interface_->isReady() && !planner_interface_->initialize())
-    return false;
-
   // create RapidPlanGoal;
   RapidPlanGoal goal;
   if (!getRapidPlanGoal(request_.goal_constraints, goal))
+    return false;
+
+  // check planner interface
+  // TODO(henningkayser): do we need this here or should we move this to PlannerInterface::solve()?
+  if (!planner_interface_->isReady() && !planner_interface_->initialize())
     return false;
 
   // convert collision scene
@@ -110,7 +109,20 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
   planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
   // run planning attempt
-  bool success = planner_interface_->solve(roadmap_, request_.start_state, goal, collision_voxels, *res.trajectory_);
+  rtr::Config start_config;
+  // TODO(henningkayser): make sure joint positions are in order of kinematic chain
+  for (double joint_value : request_.start_state.joint_state.position)
+    start_config.push_back(joint_value);
+  std::vector<rtr::Config> solution_path;
+  bool success = planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, solution_path);
+  if (success)
+  {
+    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
+    pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(),
+        request_.start_state.joint_state.name, *res.trajectory_);
+  }
+
+  // TODO(henningkayser): connect start and goal states if necessary
 
   // fill response
   res.planning_time_ = (ros::Time::now() - start_time).toSec();

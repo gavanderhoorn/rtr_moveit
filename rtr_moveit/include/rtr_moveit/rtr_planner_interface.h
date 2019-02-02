@@ -61,8 +61,6 @@
 #include <rtr_moveit/rtr_datatypes.h>
 
 #include <moveit/macros/class_forward.h>
-#include <moveit_msgs/RobotState.h>
-#include <moveit/robot_trajectory/robot_trajectory.h>
 
 namespace rtr_moveit
 {
@@ -104,16 +102,16 @@ public:
   /** \brief Check if the RapidPlanInterface is available and the planner can receive requests */
   bool isReady() const;
 
-  /** \brief Run planning attempt and generate a solution trajectory */
-  bool solve(const RoadmapSpecification& roadmap_spec, const moveit_msgs::RobotState& start_state,
+  /** \brief Run planning attempt and generate a solution path */
+  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
              const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
-             robot_trajectory::RobotTrajectory& trajectory);
+             std::vector<rtr::Config>& solution_path);
 
-protected:
-  /** \brief Process waypoints and edges of the solution and create a joint trajectory */
-  void processSolutionPath(const std::deque<unsigned int>& waypoints, const std::deque<unsigned int>& edges,
-                           robot_trajectory::RobotTrajectory& trajectory) const;
-
+  /** \brief Run planning attempt and generate solution waypoints and edges */
+  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
+             RapidPlanGoal goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+             std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
+             std::deque<unsigned int>& edges);
 private:
   /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
   bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
@@ -150,6 +148,8 @@ private:
   std::string loaded_roadmap_;
   // indices of roadmaps written to the board
   std::map<uint16_t, std::string> roadmap_indices_;
+
+  const std::string LOGNAME = "rtr_planner_interface";
 };
 }  // namespace rtr_moveit
 

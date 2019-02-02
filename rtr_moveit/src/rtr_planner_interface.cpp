@@ -39,6 +39,7 @@
 #include <deque>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include <mutex>
 
@@ -47,7 +48,6 @@
 
 namespace rtr_moveit
 {
-const std::string LOGNAME = "rtr_planner_interface";
 // joint state distance
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
@@ -130,26 +130,47 @@ bool RTRPlannerInterface::isReady() const
   return true;
 }
 
-bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const moveit_msgs::RobotState& start_state,
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
                                 const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
-                                robot_trajectory::RobotTrajectory& trajectory)
+                                std::vector<rtr::Config>& solution_path)
 {
-  // TODO(henningkayser): implement state search
-  // Find closest existing configuration in roadmap that can be connected to the start state
-  unsigned int start_id = 0;  // dummy
-
-  // planning result
-  int result = -1;
   std::deque<unsigned int> waypoints, edges;
+  std::vector<rtr::Config> roadmap_states;
+  bool success = solve(roadmap_spec, start_config, goal, occupancy_voxels, roadmap_states, waypoints, edges);
+  //TODO(henningkayser): verify waypoints and states? This should already be done in the PathPlanner.
+  if (success)
+  {
+    // fill solution path
+    for (unsigned int waypoint : waypoints)
+      solution_path.push_back(roadmap_states[waypoint]);
+
+    // TODO(henningkayser): only print in debug mode
+    std::cout << "Solution path:" << std::endl;
+    for (unsigned int waypoint : waypoints)
+    {
+      std::cout << "waypoint " << (int) waypoint << ": ";
+      for (float joint_value : roadmap_states[waypoint])
+        std::cout << joint_value << " ";
+      std::cout << std::endl;
+    }
+  }
+  return success;
+}
+
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
+                                RapidPlanGoal goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+                                std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
+                                std::deque<unsigned int>& edges)
+{
   {  // SCOPED MUTEX LOCK
     std::lock_guard<std::mutex> scoped_lock(mutex_);
 
-    // load roadmap and get roadmap index
+    // Load roadmap to PathPlanner and MPA and get roadmap storage index
     uint16_t roadmap_index;
     if (!prepareRoadmap(roadmap_spec, roadmap_index))
       return false;
 
-    // run collision check with RapidPlanInterface
+    // Check collisions using the RapidPlanInterface
     std::vector<uint8_t> collisions;
     #if RAPID_PLAN_INTERFACE_ENABLED
     if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
@@ -157,34 +178,59 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
       return false;
     }
+    #else
+    collisions.resize(planner_.GetNumEdges());  // dummy
     #endif
 
-    // call PathPlanner
-    if (goal.type == RapidPlanGoal::Type::TRANSFORM)
+    // Call PathPlanner
+    int result = -1;
+    planner_.SetEdgeCost(&getConfigDistance);  // simple joint distance - TODO(henningkayser): use weighted distance?
+    roadmap_states = planner_.GetConfigs();
+    // Find closest existing configuration in roadmap that can be connected to the start state
+    // TODO(henningkayser): add start state tolerance parameter
+    // TODO(henningkayser): discuss API - we should search for this more efficiently and outside of the mutex scope
+    unsigned int start_id = findClosestConfigId(start_config, roadmap_states);
+    switch (goal.type)
     {
-      // TODO(henningkayser): move to conversions
-      rtr::Vec3 euler_angles;
-      goal.transform.R.GetEuler(euler_angles);
-      rtr::ToolPose tool_pose = { goal.transform.t[0], goal.transform.t[1], goal.transform.t[2],
-                                  euler_angles[0], euler_angles[1], euler_angles[2] };
-
-	    result = planner_.FindPath(start_id, tool_pose, collisions, goal.tolerance, goal.weights, waypoints, edges);
+      case RapidPlanGoal::Type::TRANSFORM:
+        {
+          rtr::ToolPose tool_pose;
+          rtrTransformToRtrToolPose(goal.transform, tool_pose);
+          result = planner_.FindPath(start_id, tool_pose, collisions, goal.tolerance, goal.weights, waypoints, edges);
+          break;
+        }
+      case RapidPlanGoal::Type::JOINT_STATE:
+        {
+          // TODO(henningkayser): add goal state tolerance
+          // TODO(henningkayser): discuss API - we should search for this more efficiently and outside of the mutex scope
+          // find goal state id and treat as STATE_IDS type
+          goal.state_ids = { findClosestConfigId(goal.joint_state, roadmap_states) };
+        }
+      case RapidPlanGoal::Type::STATE_IDS:
+        {
+          result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges);
+        }
     }
-    else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
+    // process result
+    if (result == 0)
     {
-	    result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges);
+      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
+      //TODO(henningkayser): Only print if debugging is enabled
+      std::cout << "Waypoint ids: ";
+      for (unsigned int waypoint : waypoints)
+        std::cout << (int) waypoint << " ";
+      std::cout << std::endl << "Edges: ";
+      std::vector<std::array<unsigned int, 2>> roadmap_edges = planner_.GetEdges();
+      for (unsigned int edge_id : edges)
+        std::cout << (int) roadmap_edges[(int) edge_id][0] << "-" << (int) roadmap_edges[(int) edge_id][1] << " ";
+      std::cout << std::endl;
     }
+    else
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
+    }
+    return result == 0;  // 0 == SUCESS
   }  // SCOPED MUTEX UNLOCK
-
-  // process result
-  if (result == 0)
-    processSolutionPath(waypoints, edges, trajectory);
-  else
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
-
-  // TODO(henningkayser): Connect start and goal state to trajectory
-
-  return result == 0;  // 0 == SUCESS
 }
 
 bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
@@ -225,13 +271,5 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
   }
   ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_id << "'");
   return true;
-}
-
-void RTRPlannerInterface::processSolutionPath(const std::deque<unsigned int>& waypoints,
-                                              const std::deque<unsigned int>& edges,
-                                              robot_trajectory::RobotTrajectory& trajectory) const
-{
-  // TODO(henningkayser): implement trajectory processing
-  ROS_ASSERT_MSG(false, "Function not implemented.");
 }
 }  // namespace rtr_moveit

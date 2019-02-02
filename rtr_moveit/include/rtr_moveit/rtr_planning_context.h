@@ -74,6 +74,7 @@ private:
   const RTRPlannerInterfacePtr planner_interface_;
   RoadmapSpecification roadmap_;
   bool has_roadmap_ = false;
+  const std::string LOGNAME = "rtr_planning_context";
 };
 }  // namespace rtr_moveit
 

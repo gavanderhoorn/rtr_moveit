@@ -52,6 +52,8 @@
 #include <geometry_msgs/Pose.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <moveit/robot_state/robot_state.h>
 #include <geometric_shapes/shapes.h>
 
 #include <moveit/collision_detection/world.h>
@@ -66,6 +68,7 @@ namespace rtr_moveit
 {
 namespace
 {
+static const std::string LOGNAME = "rtr_conversions";
 #if 0
 inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
 {
@@ -113,21 +116,37 @@ inline void poseRtrToMsg(const rtr::Transform& rtr_transform, geometry_msgs::Pos
 }
 #endif
 
-inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
-                                     const std::deque<unsigned int>& path_indices,
-                                     trajectory_msgs::JointTrajectory& trajectory)
+inline bool rtrTransformToRtrToolPose(const rtr::Transform& transform, std::array<float, 6>& tool_pose)
 {
-  trajectory.points.resize(path_indices.size());
-  int joints_num = roadmap_states[0].size();
-  for (auto i : path_indices)
-  {
-    // fill joint values
-    trajectory.points[i].positions.resize(joints_num);
-    for (int j = 0; j < joints_num; j++)
-      trajectory.points[i].positions[j] = roadmap_states[i][j];
+  rtr::Vec3 euler_angles;
+  transform.R.GetEuler(euler_angles);
+  tool_pose = { transform.t[0], transform.t[1], transform.t[2],
+    euler_angles[0], euler_angles[1], euler_angles[2] };
+}
 
-    // TODO(henningkayser@picknik.ai): Initialize velocities, accelerations, effort, time_from-start
+inline bool pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
+                                     const robot_state::RobotState& reference_state,
+                                     const std::vector<std::string>& joint_names,
+                                     robot_trajectory::RobotTrajectory& trajectory)
+{
+  if (path.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
+    return false;
   }
+  if (joint_names.size() != path[0].size())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
+    return false;
+  }
+  for (const rtr::Config& joint_state : path)
+  {
+    robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
+    for (std::size_t i=0; i < joint_names.size(); i++)
+      robot_state->setJointPositions(joint_names[i], { (double) joint_state[i] });
+    trajectory.addSuffixWayPoint(robot_state, 0.1);
+  }
+  return true;
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
