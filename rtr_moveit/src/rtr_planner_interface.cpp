@@ -48,6 +48,33 @@
 namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planner_interface";
+// joint state distance
+float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
+{
+  if (first.size() != second.size())
+    return DBL_MAX;
+  float distance = 0.0;
+  for (unsigned int i=0; i < first.size(); i++)
+    distance += std::abs(first[i] - second[i]);
+  return distance;
+}
+
+// find index of closest config in config list
+unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rtr::Config>& configs)
+{
+  unsigned int result_id = -1;
+  float min_distance = DBL_MAX;
+  for (std::size_t i=0; i < configs.size(); i++)
+  {
+    float distance = getConfigDistance(config, configs[i]);
+    if (distance < min_distance)
+    {
+      min_distance = distance;
+      result_id = i;
+    }
+  }
+  return result_id;
+}
 
 RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh)
   : nh_(nh)
