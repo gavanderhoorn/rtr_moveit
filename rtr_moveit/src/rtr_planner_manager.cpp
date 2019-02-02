@@ -80,7 +80,7 @@ public:
     }
 
     // initialize planner
-    planner_interface_.reset(new RTRPlannerInterface(robot_model, nh_));
+    planner_interface_.reset(new RTRPlannerInterface(nh_));
     if (!planner_interface_->initialize())
     {
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");

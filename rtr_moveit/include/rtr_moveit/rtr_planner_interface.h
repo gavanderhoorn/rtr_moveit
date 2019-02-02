@@ -95,7 +95,7 @@ struct RapidPlanGoal
 class RTRPlannerInterface
 {
 public:
-  RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh);
+  RTRPlannerInterface(const ros::NodeHandle& nh);
   virtual ~RTRPlannerInterface();
 
   /** \brief Initialize the RapidPlanInterface */
@@ -133,7 +133,6 @@ private:
   }
 
   ros::NodeHandle nh_;
-  robot_model::RobotModelConstPtr robot_model_;
 
   // mutex lock for thread-safe RapidPlan calls
   std::mutex mutex_;
