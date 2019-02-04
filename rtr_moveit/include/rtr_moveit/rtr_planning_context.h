@@ -71,6 +71,7 @@ public:
   virtual bool terminate();
 
 private:
+  moveit_msgs::MoveItErrorCodes solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time);
   const RTRPlannerInterfacePtr planner_interface_;
   RoadmapSpecification roadmap_;
   bool has_roadmap_ = false;

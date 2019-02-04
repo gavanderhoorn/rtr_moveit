@@ -84,55 +84,67 @@ RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::strin
 {
 }
 
-bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
+moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time)
 {
   ros::Time start_time = ros::Time::now();
-  res.error_code_.val = res.error_code_.FAILURE;
+  moveit_msgs::MoveItErrorCodes result;
+  result.val = result.FAILURE;
 
   // this is always satisfied since getPlanningContext() would have failed otherwise
   if (!has_roadmap_)
-    return false;
+    return result;
 
   // create RapidPlanGoal;
   RapidPlanGoal goal;
   if (!getRapidPlanGoal(request_.goal_constraints, goal))
-    return false;
+    return result;
 
   // check planner interface
   // TODO(henningkayser): do we need this here or should we move this to PlannerInterface::solve()?
   if (!planner_interface_->isReady() && !planner_interface_->initialize())
-    return false;
+    return result;
 
-  // convert collision scene
+  // prepare collision scene
   // TODO(henningkayser): Implement generic collision type for PCL and PlanningScene conversion
   std::vector<rtr::Voxel> collision_voxels;
   planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
-  // run planning attempt
-  rtr::Config start_config;
+  // convert start state
   // TODO(henningkayser): make sure joint positions are in order of kinematic chain
-  for (double joint_value : request_.start_state.joint_state.position)
+  rtr::Config start_config;
+  sensor_msgs::JointState start_state = request_.start_state.joint_state;
+  for (double joint_value : start_state.position)
     start_config.push_back(joint_value);
+
+  // run planning attempt
   std::vector<rtr::Config> solution_path;
   bool success = planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, solution_path);
   if (success)
   {
-    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
-    pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(),
-        request_.start_state.joint_state.name, *res.trajectory_);
+    trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
+    pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(), start_state.name, *trajectory);
   }
 
   // TODO(henningkayser): connect start and goal states if necessary
 
-  // fill response
-  res.planning_time_ = (ros::Time::now() - start_time).toSec();
-  res.error_code_.val = success ? res.error_code_.SUCCESS : res.error_code_.PLANNING_FAILED;
-  return success;
+  result.val = success ? result.SUCCESS : result.PLANNING_FAILED;
+  planning_time = (ros::Time::now() - start_time).toSec();
+  return result;
+}
+
+bool RTRPlanningContext::solve(planning_interface::MotionPlanResponse& res)
+{
+  res.error_code_ = solve(res.trajectory_, res.planning_time_);
+  return res.error_code_.val == res.error_code_.SUCCESS;
 }
 
 bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& res)
 {
-  return false;
+  res.trajectory_.resize(res.trajectory_.size() + 1);
+  res.processing_time_.resize(res.processing_time_.size() + 1);
+  res.error_code_ = solve(res.trajectory_.back(), res.processing_time_.back());
+  res.description_.push_back("plan");
+  return res.error_code_.val == res.error_code_.SUCCESS;
 }
 
 void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
