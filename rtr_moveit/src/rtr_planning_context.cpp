@@ -118,16 +118,15 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
 
   // run planning attempt
   std::vector<rtr::Config> solution_path;
-  bool success = planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, solution_path);
-  if (success)
+  double timeout = request_.allowed_planning_time * 1000;  // seconds -> milliseconds
+  result.val = result.PLANNING_FAILED;
+  if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
   {
+    result.val = result.SUCCESS;
     trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
     pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(), start_state.name, *trajectory);
   }
-
   // TODO(henningkayser): connect start and goal states if necessary
-
-  result.val = success ? result.SUCCESS : result.PLANNING_FAILED;
   planning_time = (ros::Time::now() - start_time).toSec();
   return result;
 }
