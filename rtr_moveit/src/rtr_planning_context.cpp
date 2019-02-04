@@ -49,39 +49,22 @@
 
 namespace rtr_moveit
 {
-// Short helper function to extract a goal pose from goal constraints.
-// This will be replaced by more sophisticated methods, that support
-// joint states and generate matching goal tolerances and weights.
-bool getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal)
-{
-  if (goal_constraints.empty())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Cannot extract goal from empty goal constraints");
-    return false;
-  }
 
-  moveit_msgs::Constraints goal_constraint = goal_constraints[0];
-  if (goal_constraint.joint_constraints.size() > 0)
-  {
-    //TODO(henningkayser): verify order of joint constraints
-    goal.type = RapidPlanGoal::Type::JOINT_STATE;
-    goal.joint_state.clear();
-    for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
-      goal.joint_state.push_back(joint_constraint.position);
-  }
-  else
-  {
-    //TODO(henningkayser): implement position goals
-    ROS_ERROR_NAMED(LOGNAME, "Failed to extract goal from constraints. Only joint constraints support is implemented.");
-    return false;
-  }
-  return true;
-}
 
-RTRPlanningContext::RTRPlanningContext(const std::string& name, const std::string& planning_group,
+RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                                        const RTRPlannerInterfacePtr& planner_interface)
-  : planning_interface::PlanningContext(name, planning_group), planner_interface_(planner_interface)
+  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group),
+    planner_interface_(planner_interface),
+    roadmap_(roadmap_spec)
 {
+  // TODO(henningkayser): load volume from roadmap config file
+  roadmap_.volume.base_frame = "base_link";
+  roadmap_.volume.center.x = 0.1;
+  roadmap_.volume.center.y = 0.1;
+  roadmap_.volume.center.z = 0.1;
+  roadmap_.volume.dimensions.size[0] = 1.0;
+  roadmap_.volume.dimensions.size[1] = 1.0;
+  roadmap_.volume.dimensions.size[2] = 1.0;
 }
 
 moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time)
@@ -96,6 +79,10 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     ROS_ERROR_NAMED(LOGNAME, "solve() was called but planning context has not been configured successfully");
     return result;
   }
+
+  // check planner interface
+  if (!planner_interface_->isReady() && !planner_interface_->initialize())
+    return result;
 
   // prepare collision scene
   // TODO(henningkayser): Implement generic collision type for PCL and PlanningScene conversion
@@ -139,33 +126,9 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
   return res.error_code_.val == res.error_code_.SUCCESS;
 }
 
-void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
-{
-  roadmap_ = roadmap;
-  // TODO(henningkayser): load volume from roadmap config file
-  roadmap_.volume.base_frame = "base_link";
-  roadmap_.volume.center.x = 0.1;
-  roadmap_.volume.center.y = 0.1;
-  roadmap_.volume.center.z = 0.1;
-  roadmap_.volume.dimensions.size[0] = 1.0;
-  roadmap_.volume.dimensions.size[1] = 1.0;
-  roadmap_.volume.dimensions.size[2] = 1.0;
-  has_roadmap_ = true;
-}
-
 void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
   error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
-  // verify we have a roadmap
-  if (!has_roadmap_)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << group_);
-    return;
-  }
-
-  // check planner interface
-  if (!planner_interface_->isReady() && !planner_interface_->initialize())
-    return;
 
   // extract RapidPlanGoal;
   if (!getRapidPlanGoal(request_.goal_constraints, goal_))
@@ -176,6 +139,32 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
+}
+
+bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal)
+{
+  if (goal_constraints.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Cannot extract goal from empty goal constraints");
+    return false;
+  }
+
+  moveit_msgs::Constraints goal_constraint = goal_constraints[0];
+  if (goal_constraint.joint_constraints.size() > 0)
+  {
+    //TODO(henningkayser): verify order of joint constraints
+    goal.type = RapidPlanGoal::Type::JOINT_STATE;
+    goal.joint_state.clear();
+    for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
+      goal.joint_state.push_back(joint_constraint.position);
+  }
+  else
+  {
+    //TODO(henningkayser): implement position goals
+    ROS_ERROR_NAMED(LOGNAME, "Failed to extract goal from constraints. Only joint constraints support is implemented.");
+    return false;
+  }
+  return true;
 }
 
 void RTRPlanningContext::clear()

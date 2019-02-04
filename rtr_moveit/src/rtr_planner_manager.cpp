@@ -222,10 +222,8 @@ public:
                                                             const planning_interface::MotionPlanRequest& req,
                                                             moveit_msgs::MoveItErrorCodes& error_code) const
   {
-    RTRPlanningContext context("rtr_planning_context", req.group_name, planner_interface_);
-    context.setMotionPlanRequest(req);
-    context.setPlanningScene(planning_scene);
-
+    RTRPlanningContextPtr context;
+    error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
     // look for group config
     auto group_config_search = group_configs_.find(req.group_name);
     if (group_config_search != group_configs_.end())
@@ -238,11 +236,18 @@ public:
         group_roadmap = *group_config.roadmap_ids.begin();
       auto roadmap_search = roadmaps_.find(group_roadmap);
       if (roadmap_search != roadmaps_.end())
-        context.setRoadmap(roadmap_search->second);
+      {
+        context.reset(new RTRPlanningContext(req.group_name, roadmap_search->second, planner_interface_));
+        context->setMotionPlanRequest(req);
+        context->setPlanningScene(planning_scene);
+        context->configure(error_code);
+      }
+      else
+      {
+        ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << req.group_name);
+      }
     }
-
-    context.configure(error_code);
-    return std::make_shared<RTRPlanningContext>(context);
+    return context;
   }
 
 private:
