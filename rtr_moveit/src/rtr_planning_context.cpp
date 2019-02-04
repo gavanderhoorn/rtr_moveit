@@ -53,6 +53,7 @@
 #include <moveit/constraint_samplers/default_constraint_samplers.h>
 #include <moveit/constraint_samplers/union_constraint_sampler.h>
 #include <moveit_msgs/Constraints.h>
+#include <moveit/robot_state/conversions.h>
 
 // rtr_moveit
 #include <rtr_moveit/rtr_planning_context.h>
@@ -111,7 +112,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   // Iterate goals and plan until we have a solution
   std::vector<rtr::Config> solution_path;
   result.val = result.PLANNING_FAILED;
-  for (const RapidPlanGoal& goal : goals_)
+  for (std::size_t goal_pos = 0; goal_pos < goals_.size(); goal_pos++)
   {
     // check time
     double timeout = (terminate_plan_time_ - ros::Time::now()).toSec() * 1000;  // seconds -> milliseconds
@@ -122,6 +123,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     }
 
     // run plan
+    const RapidPlanGoal& goal = goals_[goal_pos];
     if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
     {
       if (solution_path.empty())
@@ -129,16 +131,35 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
         ROS_WARN_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
         continue;
       }
+
       // convert solution path to robot trajectory
-      result.val = result.SUCCESS;
       const robot_state::RobotState& reference_state = planning_scene_->getCurrentState();
       trajectory.reset(new robot_trajectory::RobotTrajectory(reference_state.getRobotModel(), group_));
       pathRtrToRobotTrajectory(solution_path, reference_state, joint_model_names_, *trajectory);
+
+      // connect start state waypoint
+      if (!connectWaypointToTrajectory(trajectory, start_state_, true))
+      {
+        ROS_WARN_NAMED(LOGNAME, "Found collisions trying to connect the requested start state to the solution path");
+        continue;
+      }
+
+      // connect goal state waypoint
+      if (goal_states_[goal_pos])
+      {
+        if (!connectWaypointToTrajectory(trajectory, goal_states_[goal_pos]))
+        {
+          ROS_WARN_NAMED(LOGNAME, "Found collisions trying to connect the goal state to the solution path");
+          continue;
+        }
+      }
+
+      // plan successful
+      result.val = result.SUCCESS;
       break;
     }
     solution_path.clear();
   }
-  // TODO(RTR-47): connect start and goal state if necessary
   planning_time = (ros::Time::now() - start_time).toSec();
   return result;
 }
@@ -155,7 +176,38 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
   res.processing_time_.resize(res.processing_time_.size() + 1);
   res.error_code_ = solve(res.trajectory_.back(), res.processing_time_.back());
   res.description_.push_back("plan");
+  //TODO(henningkayser): add more detailed descriptions for planning steps
   return res.error_code_.val == res.error_code_.SUCCESS;
+}
+
+bool RTRPlanningContext::connectWaypointToTrajectory(const robot_trajectory::RobotTrajectoryPtr& trajectory,
+                                                     const robot_state::RobotStatePtr& waypoint_state,
+                                                     bool connect_to_front)
+{
+  robot_state::RobotState connecting_state(trajectory->getLastWayPoint());
+  if (connect_to_front)
+    connecting_state = trajectory->getFirstWayPoint();
+
+  // check collisions of intermediate states and the waypoint state itself
+  robot_state::RobotState intermediate_state(connecting_state);
+  double waypoint_distance = connecting_state.distance(*waypoint_state);
+  std::size_t step_count = std::abs(waypoint_distance / max_waypoint_distance_) + 1;
+  double step_fraction = 1.0 / step_count;
+  for (std::size_t step = 0; step <= step_count; step++)
+  {
+    connecting_state.interpolate(*waypoint_state, step * step_fraction, intermediate_state);
+    if (planning_scene_->isStateColliding(intermediate_state))
+      return false;
+    //if (connect_to_front)
+    //  trajectory->addPrefixWayPoint(intermediate_state, 0.0);
+    //else
+    //  trajectory->addSuffixWayPoint(intermediate_state, 0.0);
+  }
+  if (connect_to_front)
+    trajectory->addPrefixWayPoint(intermediate_state, 0.0);
+  else
+    trajectory->addSuffixWayPoint(intermediate_state, 0.0);
+  return true;
 }
 
 void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
@@ -169,6 +221,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_position_distance", allowed_position_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_joint_distance", allowed_joint_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_goal_states", max_goal_states_);
+  error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_waypoint_distance", max_waypoint_distance_);
   if (error)
   {
     ROS_ERROR_NAMED(LOGNAME, "Planning Context could not be configured due to missing params");
@@ -331,6 +384,7 @@ bool RTRPlanningContext::initStartState(rtr::Config& start_config)
 
 void RTRPlanningContext::clear()
 {
+  //TODO(henningkayser): implement and support reusing planning contexts
 }
 
 bool RTRPlanningContext::terminate()
