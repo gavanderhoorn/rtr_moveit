@@ -90,19 +90,12 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   moveit_msgs::MoveItErrorCodes result;
   result.val = result.FAILURE;
 
-  // this is always satisfied since getPlanningContext() would have failed otherwise
-  if (!has_roadmap_)
+  // this should always be satisfied since getPlanningContext() would have failed otherwise
+  if (!configured_)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "solve() was called but planning context has not been configured successfully");
     return result;
-
-  // create RapidPlanGoal;
-  RapidPlanGoal goal;
-  if (!getRapidPlanGoal(request_.goal_constraints, goal))
-    return result;
-
-  // check planner interface
-  // TODO(henningkayser): do we need this here or should we move this to PlannerInterface::solve()?
-  if (!planner_interface_->isReady() && !planner_interface_->initialize())
-    return result;
+  }
 
   // prepare collision scene
   // TODO(henningkayser): Implement generic collision type for PCL and PlanningScene conversion
@@ -120,7 +113,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   std::vector<rtr::Config> solution_path;
   double timeout = request_.allowed_planning_time * 1000;  // seconds -> milliseconds
   result.val = result.PLANNING_FAILED;
-  if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
+  if (planner_interface_->solve(roadmap_, start_config, goal_, collision_voxels, timeout, solution_path))
   {
     result.val = result.SUCCESS;
     trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
@@ -162,13 +155,27 @@ void RTRPlanningContext::setRoadmap(const RoadmapSpecification& roadmap)
 
 void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
-  // TODO(henningkayser): move some checks and preparations to here
-  error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+  error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+  // verify we have a roadmap
   if (!has_roadmap_)
   {
     ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << group_);
-    error_code.val = moveit_msgs::MoveItErrorCodes::PLANNING_FAILED;
+    return;
   }
+
+  // check planner interface
+  if (!planner_interface_->isReady() && !planner_interface_->initialize())
+    return;
+
+  // extract RapidPlanGoal;
+  if (!getRapidPlanGoal(request_.goal_constraints, goal_))
+    return;
+
+  if (request_.num_planning_attempts > 1)
+    ROS_WARN_NAMED(LOGNAME, "Ignoring parameter 'num_planning_attempts' - RapidPlan is deterministic");
+
+  error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+  configured_ = true;
 }
 
 void RTRPlanningContext::clear()

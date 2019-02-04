@@ -74,7 +74,9 @@ private:
   moveit_msgs::MoveItErrorCodes solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time);
   const RTRPlannerInterfacePtr planner_interface_;
   RoadmapSpecification roadmap_;
+  RapidPlanGoal goal_;
   bool has_roadmap_ = false;
+  bool configured_ = false;
   const std::string LOGNAME = "rtr_planning_context";
 };
 }  // namespace rtr_moveit
