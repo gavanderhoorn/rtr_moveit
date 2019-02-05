@@ -68,9 +68,14 @@ public:
   {
     // load config
     loadRoadmapConfigurations(robot_model->getJointModelGroupNames());
-    if (group_configs_.empty() || roadmaps_.empty())
+    if (group_configs_.empty())
     {
       ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configurations from config file.");
+      return false;
+    }
+    if (roadmaps_.empty())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Failed at loading any roadmap configurations from config file.");
       return false;
     }
 
