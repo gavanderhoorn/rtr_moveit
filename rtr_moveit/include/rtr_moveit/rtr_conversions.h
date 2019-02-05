@@ -86,7 +86,7 @@ inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
-inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
+inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr planning_scene,
                                               const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions

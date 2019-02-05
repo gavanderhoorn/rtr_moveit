@@ -103,16 +103,26 @@ private:
    */
   moveit_msgs::MoveItErrorCodes solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time);
 
+  /** Converts the given goal Constraints vector to a vector of valid RapidPlanGoals that can be used with the
+   *  RTRPlannerInterface. Failed Constraints are left out of the result vector.
+   * @param  goal_constraints - the Constraints vector
+   * @param  goal - the RapidPlanGoal result vector
+   * @return true on success, false if no RapidPlanGoals could be extracted from non-empty goal_constraints
+   */
+  bool getRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
+                         std::vector<RapidPlanGoal>& goals);
+
   /** Converts the given goal constraints to a valid RapidPlanGoal that can be used with the RTRPlannerInterface
    * @param  goal_constraints - the goal constraints vector
    * @param  goal - the returned RapidPlanGoal
    * @return true on success
    */
-  bool getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal);
+  bool getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal);
 
   const RTRPlannerInterfacePtr planner_interface_;
+  const moveit::core::JointModelGroup* jmg_;
   RoadmapSpecification roadmap_;
-  RapidPlanGoal goal_;
+  std::vector<RapidPlanGoal> goals_;
   bool has_roadmap_ = false;
   bool configured_ = false;
 };

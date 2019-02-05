@@ -38,6 +38,9 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
+
+#include <Eigen/Geometry>
 
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
@@ -100,22 +103,32 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   std::vector<rtr::Config> solution_path;
   double timeout = request_.allowed_planning_time * 1000;  // seconds -> milliseconds
   result.val = result.PLANNING_FAILED;
-  if (planner_interface_->solve(roadmap_, start_config, goal_, collision_voxels, timeout, solution_path))
+
+  // Iterate goals until we have a solution
+  for (const RapidPlanGoal& goal : goals_)
   {
-    if (solution_path.empty())
+    if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
     {
-      ROS_ERROR_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
+      if (solution_path.empty())
+      {
+        ROS_WARN_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
+      }
+      else if (start_state.name.size() != solution_path[0].size())
+      {
+        ROS_WARN_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
+      }
+      else
+      {
+        // convert solution path to robot trajectory
+        result.val = result.SUCCESS;
+        const robot_state::RobotState& reference_state = planning_scene_->getCurrentState();
+        trajectory.reset(new robot_trajectory::RobotTrajectory(reference_state.getRobotModel(), group_));
+        pathRtrToRobotTrajectory(solution_path, reference_state, start_state.name, *trajectory);
+        break;
+      }
     }
-    if (start_state.name.size() != solution_path[0].size())
-    {
-      ROS_ERROR_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
-    }
-    else
-    {
-      result.val = result.SUCCESS;
-      trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
-      pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(), start_state.name, *trajectory);
-    }
+    solution_path.clear();
+    // TODO(henningkayser): reduce timeout
   }
   // TODO(henningkayser): connect start and goal states if necessary
   planning_time = (ros::Time::now() - start_time).toSec();
@@ -141,8 +154,16 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
   error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
-  // extract RapidPlanGoal;
-  if (!getRapidPlanGoal(request_.goal_constraints, goal_))
+  if (!planning_scene_)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Cannot configure planning context while planning scene has not been set");
+    return;
+  }
+
+  jmg_ = planning_scene_->getCurrentState().getJointModelGroup(group_);
+
+  // extract RapidPlanGoals;
+  if (!getRapidPlanGoals(request_.goal_constraints, goals_))
     return;
 
   if (request_.num_planning_attempts > 1)
@@ -152,31 +173,130 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   configured_ = true;
 }
 
-bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints,
-                                          RapidPlanGoal& goal)
+bool RTRPlanningContext::getRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
+                                           std::vector<RapidPlanGoal>& goals)
 {
-  if (goal_constraints.empty())
+  bool success = false;
+  for (const moveit_msgs::Constraints& goal_constraint : goal_constraints)
   {
-    ROS_ERROR_NAMED(LOGNAME, "Cannot extract goal from empty goal constraints");
-    return false;
+    RapidPlanGoal goal;
+    if (getRapidPlanGoal(goal_constraint, goal))
+      goals.push_back(goal);
+  }
+  std::string error_msg;
+  if (goal_constraints.empty())
+    ROS_ERROR_NAMED(LOGNAME, "Goal constraints are empty");
+  else if (goals.empty())
+    ROS_ERROR_NAMED(LOGNAME, "Failed to extract any goals from constraints");
+  else
+    success = true;
+  return success;
+}
+
+bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal)
+{
+  bool success = false;
+  std::string warn_msg;
+
+  bool has_joint_constraint = goal_constraint.joint_constraints.size() > 0;
+  bool has_position_constraint = goal_constraint.position_constraints.size() == 1;
+  bool has_orientation_constraint = goal_constraint.orientation_constraints.size() == 1;
+  if (has_joint_constraint == (has_position_constraint || has_orientation_constraint))
+  {
+    warn_msg = "Constraints must either include joint or position/orientation constraints";
+  }
+  else if (goal_constraint.visibility_constraints.size() > 0)
+  {
+    warn_msg = "Found visibility constraints which are not supported";
+  }
+  else if (has_joint_constraint)  // JOINT GOAL
+  {
+    std::vector<std::string> joint_names = jmg_->getActiveJointModelNames();
+    if (goal_constraint.joint_constraints.size() != joint_names.size())
+    {
+      warn_msg = "Invalid number of joint constraints";
+    }
+    else
+    {
+      goal.type = RapidPlanGoal::Type::JOINT_STATE;
+      for (const std::string& joint_name : joint_names)
+        for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
+          if (joint_constraint.joint_name == joint_name)
+            goal.joint_state.push_back(joint_constraint.position);
+      success = goal.joint_state.size() == joint_names.size();  // all joints must be set
+      warn_msg = "Joint constraints contain duplicates";        // if !success
+    }
+  }
+  else  // TRANSFORM GOAL
+  {
+    // set transform tolerance high by default
+    goal.tolerance.fill(std::numeric_limits<float>::max());
+    goal.type = RapidPlanGoal::Type::TRANSFORM;
+    bool position_constraint_failed = has_position_constraint;
+    if (has_position_constraint)
+    {
+      const moveit_msgs::PositionConstraint& position_constraint = goal_constraint.position_constraints[0];
+      if (position_constraint.link_name != jmg_->getLinkModelNames().back())
+      {
+        warn_msg = "Position constraint does not apply to the endeffector";
+      }
+      else if (position_constraint.header.frame_id != roadmap_.volume.base_frame)
+      {
+        warn_msg = "Frame of Position constraint does not align with the roadmap frame";
+      }
+      else if (position_constraint.constraint_region.primitives.size() != 1 &&
+               position_constraint.constraint_region.primitive_poses.size() != 1)
+      {
+        warn_msg = "Invalid number of position constraint region primitives, must be 1";
+      }
+      else if (position_constraint.constraint_region.primitives[0].type != shape_msgs::SolidPrimitive::BOX)
+      {
+        warn_msg = "Position constraint region is not of type BOX";
+      }
+      else
+      {
+        // TODO(henningkayser): check if primitive orientation aligns with volume region
+        goal.transform[0] = position_constraint.constraint_region.primitive_poses[0].position.x;
+        goal.transform[1] = position_constraint.constraint_region.primitive_poses[0].position.y;
+        goal.transform[2] = position_constraint.constraint_region.primitive_poses[0].position.z;
+        goal.tolerance[0] = position_constraint.constraint_region.primitives[0].dimensions[0];
+        goal.tolerance[1] = position_constraint.constraint_region.primitives[0].dimensions[1];
+        goal.tolerance[2] = position_constraint.constraint_region.primitives[0].dimensions[2];
+        position_constraint_failed = false;
+      }
+    }
+    bool orientation_constraint_failed = has_orientation_constraint;
+    if (has_orientation_constraint)
+    {
+      const moveit_msgs::OrientationConstraint& orientation_constraint = goal_constraint.orientation_constraints[0];
+      if (orientation_constraint.link_name != jmg_->getLinkModelNames().back())
+      {
+        warn_msg = "Orientation constraint does not apply to the endeffector";
+      }
+      if (orientation_constraint.header.frame_id != roadmap_.volume.base_frame)
+      {
+        warn_msg = "Frame of orientation constraint does not align with the roadmap frame";
+      }
+      else
+      {
+        geometry_msgs::Quaternion q = orientation_constraint.orientation;
+        Eigen::Quaterniond orientation(q.w, q.x, q.y, q.z);
+        Eigen::Vector3d euler_angles = orientation.toRotationMatrix().eulerAngles(0, 1, 2);
+        goal.transform[3] = euler_angles[0];
+        goal.transform[4] = euler_angles[1];
+        goal.transform[5] = euler_angles[2];
+        goal.tolerance[3] = orientation_constraint.absolute_x_axis_tolerance;
+        goal.tolerance[4] = orientation_constraint.absolute_y_axis_tolerance;
+        goal.tolerance[5] = orientation_constraint.absolute_z_axis_tolerance;
+        orientation_constraint_failed = false;
+      }
+    }
+    success = !(position_constraint_failed || orientation_constraint_failed);  // none of position/orientation failed
   }
 
-  moveit_msgs::Constraints goal_constraint = goal_constraints[0];
-  if (goal_constraint.joint_constraints.size() > 0)
-  {
-    // TODO(henningkayser): verify order of joint constraints
-    goal.type = RapidPlanGoal::Type::JOINT_STATE;
-    goal.joint_state.clear();
-    for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
-      goal.joint_state.push_back(joint_constraint.position);
-  }
-  else
-  {
-    // TODO(henningkayser): implement position goals
-    ROS_ERROR_NAMED(LOGNAME, "Failed to extract goal from constraints. Only joint constraints support is implemented.");
-    return false;
-  }
-  return true;
+  if (!success)
+    ROS_WARN_STREAM_NAMED(LOGNAME, "Failed to process goal constraint - " << warn_msg);
+  return success;
 }
 
 void RTRPlanningContext::clear()
