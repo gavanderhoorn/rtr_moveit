@@ -103,15 +103,16 @@ public:
   bool isReady() const;
 
   /** \brief Run planning attempt and generate a solution path */
-  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
-             const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
-             const double& timeout, std::vector<rtr::Config>& solution_path);
+  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config, const RapidPlanGoal& goal,
+             const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
+             std::vector<rtr::Config>& solution_path);
 
   /** \brief Run planning attempt and generate solution waypoints and edges */
-  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
-             const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
-             const double& timeout, std::vector<rtr::Config>& roadmap_states,
-             std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges);
+  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config, const RapidPlanGoal& goal,
+             const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
+             std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
+             std::deque<unsigned int>& edges);
+
 private:
   /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
   bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
@@ -135,10 +136,10 @@ private:
   // mutex lock for thread-safe RapidPlan calls
   std::mutex mutex_;
 
-  // RapidPlan interfaces
-  #if RAPID_PLAN_INTERFACE_ENABLED
+// RapidPlan interfaces
+#if RAPID_PLAN_INTERFACE_ENABLED
   rtr::RapidPlanInterface rapidplan_interface_;
-  #endif
+#endif
 
   rtr::PathPlanner planner_;
 

@@ -54,7 +54,7 @@ float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
   if (first.size() != second.size())
     return DBL_MAX;
   float distance = 0.0;
-  for (unsigned int i=0; i < first.size(); i++)
+  for (unsigned int i = 0; i < first.size(); i++)
     distance += std::abs(first[i] - second[i]);
   return distance;
 }
@@ -64,7 +64,7 @@ unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rt
 {
   unsigned int result_id = -1;
   float min_distance = DBL_MAX;
-  for (std::size_t i=0; i < configs.size(); i++)
+  for (std::size_t i = 0; i < configs.size(); i++)
   {
     float distance = getConfigDistance(config, configs[i]);
     if (distance < min_distance)
@@ -76,8 +76,7 @@ unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rt
   return result_id;
 }
 
-RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh)
-  : nh_(nh)
+RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
 }
 
@@ -88,7 +87,7 @@ RTRPlannerInterface::~RTRPlannerInterface()
 
 bool RTRPlannerInterface::initialize()
 {
-  #if RAPID_PLAN_INTERFACE_ENABLED
+#if RAPID_PLAN_INTERFACE_ENABLED
   // check if hardware is connected
   if (!rapidplan_interface_.Connected())
   {
@@ -109,7 +108,7 @@ bool RTRPlannerInterface::initialize()
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
     return false;
   }
-  #endif
+#endif
 
   ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
   return true;
@@ -117,14 +116,14 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
-  #if RAPID_PLAN_INTERFACE_ENABLED
+#if RAPID_PLAN_INTERFACE_ENABLED
   // try handshake
   if (!rapidplan_interface_.Handshake())
   {
     ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Handshake failed.");
     return false;
   }
-  #endif
+#endif
 
   ROS_DEBUG_NAMED(LOGNAME, "RapidPlan interface is ready.");
   return true;
@@ -137,7 +136,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
   std::deque<unsigned int> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
   bool success = solve(roadmap_spec, start_config, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
-  //TODO(henningkayser): verify waypoints and states? This should already be done in the PathPlanner.
+  // TODO(henningkayser): verify waypoints and states? This should already be done in the PathPlanner.
   if (success)
   {
     // fill solution path
@@ -148,7 +147,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     std::cout << "Solution path:" << std::endl;
     for (unsigned int waypoint : waypoints)
     {
-      std::cout << "waypoint " << (int) waypoint << ": ";
+      std::cout << "waypoint " << (int)waypoint << ": ";
       for (float joint_value : roadmap_states[waypoint])
         std::cout << joint_value << " ";
       std::cout << std::endl;
@@ -172,15 +171,15 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 
     // Check collisions using the RapidPlanInterface
     std::vector<uint8_t> collisions;
-    #if RAPID_PLAN_INTERFACE_ENABLED
+#if RAPID_PLAN_INTERFACE_ENABLED
     if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
     {
       ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
       return false;
     }
-    #else
+#else
     collisions.resize(planner_.GetNumEdges());  // dummy
-    #endif
+#endif
 
     // Call PathPlanner
     int result = -1;
@@ -196,7 +195,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       rtrTransformToRtrToolPose(goal.transform, target);
       result = planner_.FindPath(start_id, target, collisions, goal.tolerance, goal.weights, waypoints, edges, timeout);
     }
-    else if (goal.type ==  RapidPlanGoal::Type::STATE_IDS)
+    else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
     {
       result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges, timeout);
     }
@@ -213,14 +212,14 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     if (result == 0)  // SUCCESS
     {
       ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
-      //TODO(henningkayser): Only print if debugging is enabled
+      // TODO(henningkayser): Only print if debugging is enabled
       std::cout << "Waypoint ids: ";
       for (unsigned int waypoint : waypoints)
-        std::cout << (int) waypoint << " ";
+        std::cout << (int)waypoint << " ";
       std::cout << std::endl << "Edges: ";
       std::vector<std::array<unsigned int, 2>> roadmap_edges = planner_.GetEdges();
       for (unsigned int edge_id : edges)
-        std::cout << (int) roadmap_edges[(int) edge_id][0] << "-" << (int) roadmap_edges[(int) edge_id][1] << " ";
+        std::cout << (int)roadmap_edges[(int)edge_id][0] << "-" << (int)roadmap_edges[(int)edge_id][1] << " ";
       std::cout << std::endl;
     }
     else  // FAILURE
@@ -228,7 +227,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
     }
     return result == 0;  // 0 == SUCESS
-  }  // SCOPED MUTEX UNLOCK
+  }                      // SCOPED MUTEX UNLOCK
 }
 
 bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
@@ -254,17 +253,17 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
   // check if roadmap is already written to hardware
   if (!findRoadmapIndex(roadmap_id, roadmap_index))
   {
-    #if RAPID_PLAN_INTERFACE_ENABLED
+#if RAPID_PLAN_INTERFACE_ENABLED
     // write roadmap and retrieve new roadmap index
     if (!rapidplan_interface_.WriteRoadmap(files.occupancy, roadmap_index))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_id << "' to RapidPlan MPU.");
       return false;
     }
-    #else
+#else
     // if we don't use hardware, we increase the numbers
     roadmap_index = roadmap_indices_.size();
-    #endif
+#endif
     roadmap_indices_[roadmap_index] = roadmap_id;
   }
   ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_id << "'");

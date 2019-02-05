@@ -120,8 +120,7 @@ inline bool rtrTransformToRtrToolPose(const rtr::Transform& transform, std::arra
 {
   rtr::Vec3 euler_angles;
   transform.R.GetEuler(euler_angles);
-  tool_pose = { transform.t[0], transform.t[1], transform.t[2],
-    euler_angles[0], euler_angles[1], euler_angles[2] };
+  tool_pose = { transform.t[0], transform.t[1], transform.t[2], euler_angles[0], euler_angles[1], euler_angles[2] };
 }
 
 inline bool pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
@@ -142,8 +141,8 @@ inline bool pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
   for (const rtr::Config& joint_state : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
-    for (std::size_t i=0; i < joint_names.size(); i++)
-      robot_state->setJointPositions(joint_names[i], { (double) joint_state[i] });
+    for (std::size_t i = 0; i < joint_names.size(); i++)
+      robot_state->setJointPositions(joint_names[i], { (double)joint_state[i] });
     trajectory.addSuffixWayPoint(robot_state, 0.1);
   }
   return true;

@@ -49,13 +49,11 @@
 
 namespace rtr_moveit
 {
-
-
 RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                                        const RTRPlannerInterfacePtr& planner_interface)
-  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group),
-    planner_interface_(planner_interface),
-    roadmap_(roadmap_spec)
+  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group)
+  , planner_interface_(planner_interface)
+  , roadmap_(roadmap_spec)
 {
   // TODO(henningkayser): load volume from roadmap config file
   roadmap_.volume.base_frame = "base_link";
@@ -67,7 +65,8 @@ RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const 
   roadmap_.volume.dimensions.size[2] = 1.0;
 }
 
-moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotTrajectoryPtr& trajectory, double& planning_time)
+moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotTrajectoryPtr& trajectory,
+                                                        double& planning_time)
 {
   ros::Time start_time = ros::Time::now();
   moveit_msgs::MoveItErrorCodes result;
@@ -141,7 +140,8 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   configured_ = true;
 }
 
-bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal)
+bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints,
+                                          RapidPlanGoal& goal)
 {
   if (goal_constraints.empty())
   {
@@ -152,7 +152,7 @@ bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constra
   moveit_msgs::Constraints goal_constraint = goal_constraints[0];
   if (goal_constraint.joint_constraints.size() > 0)
   {
-    //TODO(henningkayser): verify order of joint constraints
+    // TODO(henningkayser): verify order of joint constraints
     goal.type = RapidPlanGoal::Type::JOINT_STATE;
     goal.joint_state.clear();
     for (const moveit_msgs::JointConstraint& joint_constraint : goal_constraint.joint_constraints)
@@ -160,7 +160,7 @@ bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::Constra
   }
   else
   {
-    //TODO(henningkayser): implement position goals
+    // TODO(henningkayser): implement position goals
     ROS_ERROR_NAMED(LOGNAME, "Failed to extract goal from constraints. Only joint constraints support is implemented.");
     return false;
   }
