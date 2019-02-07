@@ -40,6 +40,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <rtr_moveit/rtr_planner_interface.h>
+#include <rtr_moveit/roadmap_util.h>
 
 TEST(TestSuite, testPlannerInterface)
 {
