@@ -90,44 +90,6 @@ struct RapidPlanGoal
   // JOINT_STATE
   std::vector<float> joint_state;
 };
-namespace
-{
-/** Compute the absolute distance between two joint state configurations
- * @param first, second - The pair of joint states as Config types
- * @return - The absolute joint state distance between first and second
- */
-float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
-{
-  if (first.size() != second.size())
-    return DBL_MAX;
-  float distance = 0.0;
-  for (unsigned int i = 0; i < first.size(); i++)
-    distance += std::abs(first[i] - second[i]);
-  return distance;
-}
-
-/** Find and return the index of the element in configs with the minimal distance to a given joint state config
- * @param config - The joint state config to compare
- * @param configs - The list of configs to search in
- * @return - The index of the closest element in configs, -1 if configs is empty or config sizes don't match
- */
-unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rtr::Config>& configs)
-{
-  unsigned int result_id = -1;
-  float min_distance = DBL_MAX;
-  for (std::size_t i = 0; i < configs.size(); i++)
-  {
-    float distance = getConfigDistance(config, configs[i]);
-    if (distance < min_distance)
-    {
-      min_distance = distance;
-      result_id = i;
-    }
-  }
-  return result_id;
-}
-}
-
 class RTRPlannerInterface
 {
 public:

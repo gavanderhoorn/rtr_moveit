@@ -36,6 +36,7 @@
  * Desc: henningkayser@picknik.ai
  */
 
+// C++
 #include <deque>
 #include <string>
 #include <vector>
@@ -43,16 +44,19 @@
 #include <sstream>
 #include <mutex>
 
+// ROS
 #include <ros/console.h>
 #include <ros/console_backend.h>
 
+// rtr_moveit
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
-
+#include <rtr_moveit/roadmap_util.h>
 
 namespace rtr_moveit
 {
 static const std::string LOGNAME = "rtr_planner_interface";
+
 RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
   std::map<std::string, ros::console::levels::Level>  loggers;
