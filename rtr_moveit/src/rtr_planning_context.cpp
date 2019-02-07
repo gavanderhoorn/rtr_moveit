@@ -45,6 +45,7 @@
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
+#include <rtr_moveit/roadmap_util.h>
 
 #include <rtr-occupancy/Box.hpp>
 
@@ -227,12 +228,12 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
       warn_msg = "Joint constraints contain duplicates";        // if !success
     }
   }
-  else  // TRANSFORM GOAL
+  else  // Position goal
   {
     // set transform tolerance high by default
     goal.tolerance.fill(std::numeric_limits<float>::max());
-    goal.type = RapidPlanGoal::Type::TRANSFORM;
     bool position_constraint_failed = has_position_constraint;
+    std::vector<rtr::ToolPose> roadmap_poses;
     if (has_position_constraint)
     {
       const moveit_msgs::PositionConstraint& position_constraint = goal_constraint.position_constraints[0];
@@ -249,20 +250,39 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
       {
         warn_msg = "Invalid number of position constraint region primitives, must be 1";
       }
-      else if (position_constraint.constraint_region.primitives[0].type != shape_msgs::SolidPrimitive::BOX)
+      else  // unwrap constraint region
       {
-        warn_msg = "Position constraint region is not of type BOX";
-      }
-      else
-      {
-        // TODO(henningkayser): check if primitive orientation aligns with volume region
-        goal.transform[0] = position_constraint.constraint_region.primitive_poses[0].position.x;
-        goal.transform[1] = position_constraint.constraint_region.primitive_poses[0].position.y;
-        goal.transform[2] = position_constraint.constraint_region.primitive_poses[0].position.z;
-        goal.tolerance[0] = position_constraint.constraint_region.primitives[0].dimensions[0];
-        goal.tolerance[1] = position_constraint.constraint_region.primitives[0].dimensions[1];
-        goal.tolerance[2] = position_constraint.constraint_region.primitives[0].dimensions[2];
-        position_constraint_failed = false;
+        shape_msgs::SolidPrimitive constraint_primitive = position_constraint.constraint_region.primitives[0];
+        geometry_msgs::Pose constraint_pose = position_constraint.constraint_region.primitive_poses[0];
+        if (constraint_primitive.type == shape_msgs::SolidPrimitive::BOX)  // Construct TRANSFORM with box tolerances
+        {
+          // TODO(henningkayser): check if primitive orientation aligns with volume region
+          goal.type = RapidPlanGoal::Type::TRANSFORM;
+          goal.transform[0] = constraint_pose.position.x;
+          goal.transform[1] = constraint_pose.position.y;
+          goal.transform[2] = constraint_pose.position.z;
+          goal.tolerance[0] = constraint_primitive.dimensions[0];
+          goal.tolerance[1] = constraint_primitive.dimensions[1];
+          goal.tolerance[2] = constraint_primitive.dimensions[2];
+          position_constraint_failed = false;
+        }
+        else if (constraint_primitive.type == shape_msgs::SolidPrimitive::SPHERE)  // Look for states within sphere radius
+        {
+          if (planner_interface_->getRoadmapTransforms(roadmap_, roadmap_poses))
+          {
+            goal.type = RapidPlanGoal::Type::STATE_IDS;
+            rtr::ToolPose rtr_pose;
+            rtr_pose[0] = constraint_pose.position.x;
+            rtr_pose[1] = constraint_pose.position.y;
+            rtr_pose[2] = constraint_pose.position.z;
+            float threshold = constraint_primitive.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS];
+            findClosestPositions(rtr_pose, roadmap_poses, goal.state_ids, roadmap_poses.size(), threshold);
+            position_constraint_failed = goal.state_ids.empty();
+            warn_msg = "No roadmap states are within distance threshold of the goal constraint";
+            std::cout << "threshold " << threshold << std::endl;
+            std::cout << "constraint pose " << rtr_pose[0] << " " << rtr_pose[1] << " " << rtr_pose[2] << std::endl;
+          }
+        }
       }
     }
     bool orientation_constraint_failed = has_orientation_constraint;
@@ -279,16 +299,50 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
       }
       else
       {
+        using namespace Eigen;
         geometry_msgs::Quaternion q = orientation_constraint.orientation;
-        Eigen::Quaterniond orientation(q.w, q.x, q.y, q.z);
-        Eigen::Vector3d euler_angles = orientation.toRotationMatrix().eulerAngles(0, 1, 2);
-        goal.transform[3] = euler_angles[0];
-        goal.transform[4] = euler_angles[1];
-        goal.transform[5] = euler_angles[2];
-        goal.tolerance[3] = orientation_constraint.absolute_x_axis_tolerance;
-        goal.tolerance[4] = orientation_constraint.absolute_y_axis_tolerance;
-        goal.tolerance[5] = orientation_constraint.absolute_z_axis_tolerance;
-        orientation_constraint_failed = false;
+        Quaterniond orientation(q.w, q.x, q.y, q.z);
+        Matrix3d constraint_rotations = orientation.toRotationMatrix();
+        double x_axis_tol = orientation_constraint.absolute_x_axis_tolerance;
+        double y_axis_tol = orientation_constraint.absolute_y_axis_tolerance;
+        double z_axis_tol = orientation_constraint.absolute_z_axis_tolerance;
+        if (has_position_constraint && !position_constraint_failed &&
+            goal.type == RapidPlanGoal::Type::STATE_IDS)  // STATE_IDS
+        {
+          const Quaterniond identity(1, 0, 0, 0);
+          for (std::size_t i = 0; i < goal.state_ids.size(); i++)
+          {
+            rtr::ToolPose state_pose = roadmap_poses[goal.state_ids[i]];
+            std::cout << "state pose " << state_pose[0] << " " << state_pose[1] << " " << state_pose[2] << std::endl;
+            // set orientation error as roll * pitch * yaw * constraint.inverse()
+            Quaterniond orientation_error = AngleAxisd(state_pose[3], Vector3d::UnitX()) *
+                                            AngleAxisd(state_pose[4], Vector3d::UnitY()) *
+                                            AngleAxisd(state_pose[5], Vector3d::UnitZ()) *
+                                            orientation.inverse();
+            Matrix3d rot_error = orientation_error.toRotationMatrix();
+
+            if (identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitX(), rot_error.col(0))) > x_axis_tol ||
+                identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitZ(), rot_error.col(1))) > y_axis_tol ||
+                identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitY(), rot_error.col(2))) > z_axis_tol)
+            {
+              goal.state_ids.erase(goal.state_ids.begin() + i);  // out of tolerances
+              i--;
+            }
+          }
+          warn_msg = "No roadmap states meet the orientation constraint";
+          orientation_constraint_failed = goal.state_ids.empty();
+        }
+        else  // TRANSFORM
+        {
+          Eigen::Vector3d euler_angles = constraint_rotations.eulerAngles(0, 1, 2);
+          goal.transform[3] = euler_angles[0];
+          goal.transform[4] = euler_angles[1];
+          goal.transform[5] = euler_angles[2];
+          goal.tolerance[3] = x_axis_tol;
+          goal.tolerance[4] = y_axis_tol;
+          goal.tolerance[5] = z_axis_tol;
+          orientation_constraint_failed = false;
+        }
       }
     }
     success = !(position_constraint_failed || orientation_constraint_failed);  // none of position/orientation failed
