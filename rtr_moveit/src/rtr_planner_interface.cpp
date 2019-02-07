@@ -204,7 +204,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     }
     else
     {
-      ROS_ERROR_NAMED(LOGNAME, "Unable to handle RapidPlanGoal without goal type - Should be one of TRANSFORM, STATE_IDS, JOINT_STATE");
+      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be one of TRANSFORM, STATE_IDS, JOINT_STATE");
       return false;
     }
 
@@ -236,6 +236,43 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     else              // FAILURE
       ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
     return result == 0;  // 0 == SUCESS
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      configs = planner_.GetConfigs();
+    return success;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapEdges(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Edge>& edges)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      edges = planner_.GetEdges();
+    return success;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapTransforms(const RoadmapSpecification& roadmap_spec,
+                                               std::vector<rtr::ToolPose>& transforms)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      transforms = planner_.GetTransforms();
+    return success;
   }  // SCOPED MUTEX UNLOCK
 }
 

@@ -151,6 +151,15 @@ public:
              std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
              std::deque<unsigned int>& edges);
 
+  /** \brief Get the configs of the given roadmap */
+  bool getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs);
+
+  /** \brief Get the edges of the given roadmap */
+  bool getRoadmapEdges(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Edge>& edges);
+
+  /** \brief Get the tool transforms of the given roadmap */
+  bool getRoadmapTransforms(const RoadmapSpecification& roadmap_spec, std::vector<rtr::ToolPose>& transforms);
+
 private:
   /** \brief load roadmap file to PathPlanner and store roadmap specification */
   bool loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec);
