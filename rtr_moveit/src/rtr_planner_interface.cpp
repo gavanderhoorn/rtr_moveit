@@ -232,55 +232,59 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     }
 
     if (result == 0)  // SUCCESS
-      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
+      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints");
     else              // FAILURE
       ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
     return result == 0;  // 0 == SUCESS
   }  // SCOPED MUTEX UNLOCK
 }
 
-bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
+bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec)
 {
-  // save new roadmap if it is new
-  const std::string& roadmap_id = roadmap_spec.roadmap_id;
-  if (roadmaps_.find(roadmap_id) == roadmaps_.end())
-    roadmaps_[roadmap_id] = roadmap_spec;
-
-  // TODO(henningkayser): Only store *.og file paths, others will be deprecated with the next API
-  RoadmapFiles files = roadmaps_[roadmap_id].files;
-
-  // verify that the roadmap is loaded in the PathPlanner
-  if (roadmap_id != loaded_roadmap_)
+  // check if roadmap is already loaded in the PathPlanner
+  if (roadmap_spec.roadmap_id != loaded_roadmap_)
   {
-    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << files.occupancy);
-    if (planner_.LoadRoadmap(files.occupancy))
+    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << roadmap_spec.files.occupancy);
+    if (!planner_.LoadRoadmap(roadmap_spec.files.occupancy))
     {
-      loaded_roadmap_ = roadmap_id;
-      planner_.SetEdgeCost(&getConfigDistance);  // simple joint distance - TODO(henningkayser): use weighted distance?
-    }
-    else
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_id << "' to RapidPlan PathPlanner.");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_spec.roadmap_id << "' to PathPlanner");
       return false;
     }
+
+    // save new roadmap if it is new
+    // TODO(henningkayser): Only store *.og file paths, others will be deprecated with the next API
+    if (roadmaps_.find(roadmap_spec.roadmap_id) == roadmaps_.end())
+      roadmaps_[roadmap_spec.roadmap_id] = roadmap_spec;
+    loaded_roadmap_ = roadmap_spec.roadmap_id;
+
+    // set edge cost as simple joint distance - TODO(henningkayser): use weighted distance?
+    planner_.SetEdgeCost(&getConfigDistance);
   }
+  return true;
+}
+
+bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
+{
+  if (!loadRoadmapToPathPlanner(roadmap_spec))
+    return false;
+
   // check if roadmap is already written to hardware
-  if (!findRoadmapIndex(roadmap_id, roadmap_index))
+  if (!findRoadmapIndex(roadmap_spec.roadmap_id, roadmap_index))
   {
 #if RAPID_PLAN_INTERFACE_ENABLED
     // write roadmap and retrieve new roadmap index
-    if (!rapidplan_interface_.WriteRoadmap(files.occupancy, roadmap_index))
+    if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.files.occupancy, roadmap_index))
     {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_id << "' to RapidPlan MPU.");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_spec.roadmap_id << "' to RapidPlan MPA");
       return false;
     }
 #else
     // if we don't use hardware, we increase the numbers
     roadmap_index = roadmap_indices_.size();
 #endif
-    roadmap_indices_[roadmap_index] = roadmap_id;
+    roadmap_indices_[roadmap_index] = roadmap_spec.roadmap_id;
   }
-  ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_id << "'");
+  ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_spec.roadmap_id << "'");
   return true;
 }
 }  // namespace rtr_moveit

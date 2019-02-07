@@ -152,6 +152,9 @@ public:
              std::deque<unsigned int>& edges);
 
 private:
+  /** \brief load roadmap file to PathPlanner and store roadmap specification */
+  bool loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec);
+
   /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
   bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
 
