@@ -183,7 +183,6 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 
     // Call PathPlanner
     int result = -1;
-    planner_.SetEdgeCost(&getConfigDistance);  // simple joint distance - TODO(henningkayser): use weighted distance?
     roadmap_states = planner_.GetConfigs();
     // Find closest existing configuration in roadmap that can be connected to the start state
     // TODO(henningkayser): add start state tolerance parameter
@@ -244,7 +243,12 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
   if (roadmap_id != loaded_roadmap_)
   {
     ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << files.occupancy);
-    if (!planner_.LoadRoadmap(files.occupancy))
+    if (planner_.LoadRoadmap(files.occupancy))
+    {
+      loaded_roadmap_ = roadmap_id;
+      planner_.SetEdgeCost(&getConfigDistance);  // simple joint distance - TODO(henningkayser): use weighted distance?
+    }
+    else
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_id << "' to RapidPlan PathPlanner.");
       return false;
