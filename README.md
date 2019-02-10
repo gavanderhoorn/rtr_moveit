@@ -38,31 +38,25 @@ These instructions assume you are running on Ubuntu 16.04:
 
 1. Install RapidPlan dependencies:
 
-> Note: RapidPlan is not released yet. All dependencies are installed from .deb files stored the private git repo [rtr_moveit_deb_files](https://github.com/PickNikRobotics/rtr_moveit_deb_files.git).
-
-        sudo apt-get install gdebi libstdc++6 ros-kinetic-pcl-ros ros-kinetic-trac-ik-lib
-        git clone https://github.com/PickNikRobotics/rtr_moveit_deb_files.git
-        sudo gdebi rtr_moveit_deb_files/rapidplan/rapid-plan-16.04.deb
-        sudo dpkg -i rtr_moveit_deb_files/rtr_toolkit/ros-kinetic-*.deb
-        sudo apt-get -yf install
-        rm -r rtr_moveit_deb_files
+> Note: RapidPlan is not released yet. All dependencies are installed from .deb files stored the private git repo [rtr_moveit_deb_files](https://github.com/PickNikRobotics/rtr_moveit_deb_files.git). Follow the instructions in that repo for installing dependencies.
 
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/
-        mkdir -p $CATKIN_WS
-        cd $CATKIN_WS
+        mkdir -p $CATKIN_WS/src
+        cd $CATKIN_WS/src
 
 1. Download the required repositories and install any dependencies:
 
         git clone git@github.com:PickNikRobotics/rtr_moveit.git
-        wstool init src
-        wstool merge -t src rtr_moveit/rtr_moveit.rosinstall
-        wstool update -t src
-        rosdep install --from-paths src --ignore-src --rosdistro kinetic
+        wstool init .
+        wstool merge rtr_moveit/rtr_moveit.rosinstall
+        wstool update
+        rosdep install --from-paths . --ignore-src --rosdistro kinetic
 
 1. Configure and build the workspace:
 
+        cd $CATKIN_WS
         catkin config --extend /opt/ros/kinetic --cmake-args -DCMAKE_BUILD_TYPE=Release
         catkin build
 
