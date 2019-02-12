@@ -69,31 +69,7 @@ namespace rtr_moveit
 namespace
 {
 static const std::string LOGNAME = "rtr_conversions";
-#if 0
-inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
-{
-  // set position x/y/z
-  rtr_transform[0] = pose.position.x;
-  rtr_transform[1] = pose.position.y;
-  rtr_transform[2] = pose.position.z;
 
-  // set orientation roll pitch yaw
-  Eigen::Quaterniond rotation(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-  Eigen::Vector3d euler_angles = rotation.toRotationMatrix().eulerAngles(0, 1, 2);
-  rtr_transform[3] = euler_angles[0];
-  rtr_transform[4] = euler_angles[1];
-  rtr_transform[5] = euler_angles[2];
-}
-
-inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
-{
-  pose.position.x = rtr_transform[0];
-  pose.position.y = rtr_transform[1];
-  pose.position.z = rtr_transform[2];
-  tf::Quaternion rotation = tf::createQuaternionFromRPY(rtr_transform[3], rtr_transform[4], rtr_transform[5]);
-  tf::quaternionTFToMsg(rotation, pose.orientation);
-}
-#else
 inline void poseMsgToRtr(const geometry_msgs::Pose& pose, rtr::Transform& rtr_transform)
 {
   // set position x/y/z
@@ -114,7 +90,6 @@ inline void poseRtrToMsg(const rtr::Transform& rtr_transform, geometry_msgs::Pos
   rotation.setEuler(euler_angles[2], euler_angles[1], euler_angles[0]);
   tf::quaternionTFToMsg(rotation, pose.orientation);
 }
-#endif
 
 inline bool rtrTransformToRtrToolPose(const rtr::Transform& transform, std::array<float, 6>& tool_pose)
 {
