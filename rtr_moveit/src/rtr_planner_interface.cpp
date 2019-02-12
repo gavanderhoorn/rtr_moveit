@@ -260,9 +260,9 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
 {
   // save new roadmap if it is new
-  std::string roadmap_id = roadmap_spec.roadmap_id;
-  if (roadmaps_.find(roadmap_spec.roadmap_id) == roadmaps_.end())
-    roadmaps_[roadmap_spec.roadmap_id] = roadmap_spec;
+  const std::string& roadmap_id = roadmap_spec.roadmap_id;
+  if (roadmaps_.find(roadmap_id) == roadmaps_.end())
+    roadmaps_[roadmap_id] = roadmap_spec;
 
   // TODO(henningkayser): Only store *.og file paths, others will be deprecated with the next API
   RoadmapFiles files = roadmaps_[roadmap_id].files;
