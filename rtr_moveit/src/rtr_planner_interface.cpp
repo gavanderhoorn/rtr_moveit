@@ -40,6 +40,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 #include <mutex>
 
@@ -143,14 +144,19 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     for (unsigned int waypoint : waypoints)
       solution_path.push_back(roadmap_states[waypoint]);
 
-    // TODO(henningkayser): only print in debug mode
-    std::cout << "Solution path:" << std::endl;
+    // debug output
+    ROS_DEBUG_STREAM_NAMED(LOGNAME, "Solution path:");
     for (unsigned int waypoint : waypoints)
     {
-      std::cout << "waypoint " << (int)waypoint << ": ";
+      std::string waypoint_debug_text = "waypoint ";
+      waypoint_debug_text += std::to_string(waypoint);
+      waypoint_debug_text += ": ";
       for (float joint_value : roadmap_states[waypoint])
-        std::cout << joint_value << " ";
-      std::cout << std::endl;
+      {
+        waypoint_debug_text += std::to_string(joint_value);
+        waypoint_debug_text += " ";
+      }
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoint_debug_text);
     }
   }
   return success;
@@ -211,15 +217,24 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     if (result == 0)  // SUCCESS
     {
       ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
-      // TODO(henningkayser): Only print if debugging is enabled
-      std::cout << "Waypoint ids: ";
+      std::string waypoints_debug_text = "Waypoint ids: ";
       for (unsigned int waypoint : waypoints)
-        std::cout << (int)waypoint << " ";
-      std::cout << std::endl << "Edges: ";
-      std::vector<std::array<unsigned int, 2>> roadmap_edges = planner_.GetEdges();
+      {
+        waypoints_debug_text += std::to_string(waypoint);
+        waypoints_debug_text += " ";
+      }
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoints_debug_text);
+
+      std::string edges_debug_text = "Edges: ";
+      const std::vector<std::array<unsigned int, 2>>& roadmap_edges = planner_.GetEdges();
       for (unsigned int edge_id : edges)
-        std::cout << (int)roadmap_edges[(int)edge_id][0] << "-" << (int)roadmap_edges[(int)edge_id][1] << " ";
-      std::cout << std::endl;
+      {
+        edges_debug_text += std::to_string(roadmap_edges[(int)edge_id][0]);
+        edges_debug_text += "-";
+        edges_debug_text += std::to_string((int)roadmap_edges[(int)edge_id][1]);
+        edges_debug_text += " ";
+      }
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, edges_debug_text);
     }
     else  // FAILURE
     {
