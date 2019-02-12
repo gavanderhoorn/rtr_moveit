@@ -90,7 +90,7 @@ inline void poseRtrToMsg(const rtr::Transform& rtr_transform, geometry_msgs::Pos
   tf::quaternionTFToMsg(rotation, pose.orientation);
 }
 
-inline bool rtrTransformToRtrToolPose(const rtr::Transform& transform, std::array<float, 6>& tool_pose)
+inline void rtrTransformToRtrToolPose(const rtr::Transform& transform, std::array<float, 6>& tool_pose)
 {
   rtr::Vec3 euler_angles;
   transform.R.GetEuler(euler_angles);
