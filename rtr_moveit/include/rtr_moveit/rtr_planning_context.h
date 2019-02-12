@@ -113,7 +113,6 @@ private:
   RapidPlanGoal goal_;
   bool has_roadmap_ = false;
   bool configured_ = false;
-  const std::string LOGNAME = "rtr_planning_context";
 };
 }  // namespace rtr_moveit
 

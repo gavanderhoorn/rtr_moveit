@@ -49,6 +49,7 @@
 
 namespace rtr_moveit
 {
+static const std::string LOGNAME = "rtr_planning_context";
 RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                                        const RTRPlannerInterfacePtr& planner_interface)
   : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group)
@@ -101,9 +102,20 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   result.val = result.PLANNING_FAILED;
   if (planner_interface_->solve(roadmap_, start_config, goal_, collision_voxels, timeout, solution_path))
   {
-    result.val = result.SUCCESS;
-    trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
-    pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(), start_state.name, *trajectory);
+    if (solution_path.empty())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
+    }
+    if (start_state.name.size() != solution_path[0].size())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
+    }
+    else
+    {
+      result.val = result.SUCCESS;
+      trajectory.reset(new robot_trajectory::RobotTrajectory(planning_scene_->getCurrentState().getRobotModel(), group_));
+      pathRtrToRobotTrajectory(solution_path, planning_scene_->getCurrentState(), start_state.name, *trajectory);
+    }
   }
   // TODO(henningkayser): connect start and goal states if necessary
   planning_time = (ros::Time::now() - start_time).toSec();

@@ -152,8 +152,6 @@ private:
   std::string loaded_roadmap_;
   // indices of roadmaps written to the board
   std::map<uint16_t, std::string> roadmap_indices_;
-
-  const std::string LOGNAME = "rtr_planner_interface";
 };
 }  // namespace rtr_moveit
 

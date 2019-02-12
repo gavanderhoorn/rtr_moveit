@@ -48,6 +48,7 @@
 #include <Eigen/Geometry>
 
 #include <ros/ros.h>
+#include <ros/assert.h>
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Pose.h>
 #include <trajectory_msgs/JointTrajectory.h>
@@ -68,8 +69,6 @@ namespace rtr_moveit
 {
 namespace
 {
-static const std::string LOGNAME = "rtr_conversions";
-
 inline void poseMsgToRtr(const geometry_msgs::Pose& pose, rtr::Transform& rtr_transform)
 {
   // set position x/y/z
@@ -98,21 +97,12 @@ inline bool rtrTransformToRtrToolPose(const rtr::Transform& transform, std::arra
   tool_pose = { transform.t[0], transform.t[1], transform.t[2], euler_angles[0], euler_angles[1], euler_angles[2] };
 }
 
-inline bool pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
+inline void pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
                                      const robot_state::RobotState& reference_state,
                                      const std::vector<std::string>& joint_names,
                                      robot_trajectory::RobotTrajectory& trajectory)
 {
-  if (path.empty())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
-    return false;
-  }
-  if (joint_names.size() != path[0].size())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
-    return false;
-  }
+  ROS_ASSERT_MSG(joint_names.size() != path[0].size(), "Joint values don't match joint names");
   for (const rtr::Config& joint_state : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
@@ -120,7 +110,6 @@ inline bool pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
       robot_state->setJointPositions(joint_names[i], { (double)joint_state[i] });
     trajectory.addSuffixWayPoint(robot_state, 0.1);
   }
-  return true;
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */

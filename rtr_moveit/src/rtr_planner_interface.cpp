@@ -52,6 +52,7 @@
 
 namespace rtr_moveit
 {
+static const std::string LOGNAME = "rtr_planner_interface";
 // joint state distance
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
