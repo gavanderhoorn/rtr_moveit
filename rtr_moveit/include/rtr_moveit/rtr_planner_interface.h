@@ -69,7 +69,9 @@ MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 // A RapidPlan goal specification
 struct RapidPlanGoal
 {
-  // Two different goal types are supported
+  // RapidPlan supports either ids of roadmap states or tool pose transforms as goals.
+  // The third JOINT_STATE is handled by looking for nearby roadmap states and calling
+  // the planner with corresponding STATE_IDS.
   enum Type
   {
     STATE_IDS,
