@@ -59,8 +59,9 @@ class RTRPlanningContext : public planning_interface::PlanningContext
 {
 public:
   /** Constructor
-   * @param planning_group - The name of the planning group
-   * @param planner_interface - the planner interface
+   * @param planning_group - The name of the joint model group
+   * @param roadmap_spec - Roadmap and region volume configuration for this context
+   * @param planner_interface - The RTRPlannerInterface that handles RapidPlan collision checks and roadmap planning
    */
   RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                      const RTRPlannerInterfacePtr& planner_interface);
@@ -71,13 +72,14 @@ public:
   }
 
   /** Runs a planning attempt on the configured context and stores results in a MotionPlanResponse
-   * @param  res - the MotionPlanResponse
+   * @param  res - The MotionPlanResponse containing result code, solution trajectory and planning time
    * @return true on success
    */
   virtual bool solve(planning_interface::MotionPlanResponse& res);
 
   /** Runs a planning attempt on the configured context and stores results in a MotionPlanDetailedResponse
-   * @param  res - the MotionPlanDetailedResponse
+   * @param  res - The MotionPlanDetailedResponse containing result code, solution trajectory and descriptions
+   *               and planning times of all planning steps
    * @return true on success
    */
   virtual bool solve(planning_interface::MotionPlanDetailedResponse& res);
@@ -103,7 +105,7 @@ private:
 
   /** Converts the given goal constraints to a valid RapidPlanGoal that can be used with the RTRPlannerInterface
    * @param  goal_constraints - the goal constraints vector
-   * @param  goal - the initialized RapidPlanGoal
+   * @param  goal - the returned RapidPlanGoal
    * @return true on success
    */
   bool getRapidPlanGoal(const std::vector<moveit_msgs::Constraints>& goal_constraints, RapidPlanGoal& goal);

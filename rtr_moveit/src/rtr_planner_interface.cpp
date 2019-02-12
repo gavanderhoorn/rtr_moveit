@@ -53,7 +53,10 @@
 namespace rtr_moveit
 {
 static const std::string LOGNAME = "rtr_planner_interface";
-// joint state distance
+/** Compute the absolute distance between two joint state configurations
+ * @param first, second - The pair of joint states as Config types
+ * @return - The absolute joint state distance between first and second
+ */
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
   if (first.size() != second.size())
@@ -64,7 +67,11 @@ float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
   return distance;
 }
 
-// find index of closest config in config list
+/** Find and return the index of the element in configs with the minimal distance to a given joint state config
+ * @param config - The joint state config to compare
+ * @param configs - The list of configs to search in
+ * @return - The index of the closest element in configs, -1 if configs is empty or config sizes don't match
+ */
 unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rtr::Config>& configs)
 {
   unsigned int result_id = -1;
@@ -182,6 +189,11 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
                                 std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges)
 {
   {  // SCOPED MUTEX LOCK
+    // In solve() the RapidPlanInterface and PathPlanner are loaded with the same roadmap so that results from
+    // RapidPlanInterface::CheckScene() can be used with PathPlanner::FindPath().
+    // Calling prepareRoadmap() ensures that both are loaded with the same roadmap and the mutex lock prevents race
+    // conditions by restricting write access in the meantime.
+    // All functions that either write or load roadmaps should follow this behavior.
     std::lock_guard<std::mutex> scoped_lock(mutex_);
 
     // Load roadmap to PathPlanner and MPA and get roadmap storage index
