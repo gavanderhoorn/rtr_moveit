@@ -134,6 +134,7 @@ private:
   }
 
   ros::NodeHandle nh_;
+  bool debug_ = false;
 
   // mutex lock for thread-safe RapidPlan calls
   std::mutex mutex_;

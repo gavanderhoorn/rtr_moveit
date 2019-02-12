@@ -41,11 +41,14 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
-
 #include <mutex>
+
+#include <ros/console.h>
+#include <ros/console_backend.h>
 
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
+
 
 namespace rtr_moveit
 {
@@ -79,6 +82,13 @@ unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rt
 
 RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
+  std::map<std::string, ros::console::levels::Level>  loggers;
+  if (ros::console::get_loggers(loggers))
+  {
+    auto logger_level = loggers.find(ros::this_node::getNamespace());
+    if (logger_level != loggers.end())
+      debug_ = logger_level->second == ros::console::levels::Level::Debug;
+  }
 }
 
 RTRPlannerInterface::~RTRPlannerInterface()
@@ -145,18 +155,21 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       solution_path.push_back(roadmap_states[waypoint]);
 
     // debug output
-    ROS_DEBUG_STREAM_NAMED(LOGNAME, "Solution path:");
-    for (unsigned int waypoint : waypoints)
+    if (debug_)
     {
-      std::string waypoint_debug_text = "waypoint ";
-      waypoint_debug_text += std::to_string(waypoint);
-      waypoint_debug_text += ": ";
-      for (float joint_value : roadmap_states[waypoint])
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, "Solution path:");
+      for (unsigned int waypoint : waypoints)
       {
-        waypoint_debug_text += std::to_string(joint_value);
-        waypoint_debug_text += " ";
+        std::string waypoint_debug_text = "waypoint ";
+        waypoint_debug_text += std::to_string(waypoint);
+        waypoint_debug_text += ": ";
+        for (float joint_value : roadmap_states[waypoint])
+        {
+          waypoint_debug_text += std::to_string(joint_value);
+          waypoint_debug_text += " ";
+        }
+        ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoint_debug_text);
       }
-      ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoint_debug_text);
     }
   }
   return success;
@@ -213,10 +226,9 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       result = planner_.FindPath(start_id, goal_state_ids, collisions, waypoints, edges, timeout);
     }
 
-    // process result
-    if (result == 0)  // SUCCESS
+    // debug output
+    if (debug_)
     {
-      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
       std::string waypoints_debug_text = "Waypoint ids: ";
       for (unsigned int waypoint : waypoints)
       {
@@ -236,12 +248,13 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       }
       ROS_DEBUG_STREAM_NAMED(LOGNAME, edges_debug_text);
     }
-    else  // FAILURE
-    {
+
+    if (result == 0)  // SUCCESS
+      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints.");
+    else              // FAILURE
       ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
-    }
     return result == 0;  // 0 == SUCESS
-  }                      // SCOPED MUTEX UNLOCK
+  }  // SCOPED MUTEX UNLOCK
 }
 
 bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
