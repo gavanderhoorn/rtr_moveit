@@ -69,7 +69,6 @@ namespace rtr_moveit
 {
 namespace
 {
-
 // TODO(henningkayser): use std::vector<rtr::Config> for path once new header files are available
 inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path,
                                      const robot_state::RobotState& reference_state,
@@ -77,11 +76,11 @@ inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path
                                      robot_trajectory::RobotTrajectory& trajectory)
 {
   ROS_ASSERT_MSG(joint_names.size() == path[0].size(), "Joint values don't match joint names");
-  for (const rtr::Config& joint_state : path)
+  for (const std::vector<float>& joint_config : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
     for (std::size_t i = 0; i < joint_names.size(); i++)
-      robot_state->setJointPositions(joint_names[i], { (double)joint_state[i] });
+      robot_state->setJointPositions(joint_names[i], { (double)joint_config[i] });
     trajectory.addSuffixWayPoint(robot_state, 0.1);
   }
 }
