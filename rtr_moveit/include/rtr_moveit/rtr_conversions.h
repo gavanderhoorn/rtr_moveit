@@ -69,35 +69,9 @@ namespace rtr_moveit
 {
 namespace
 {
-inline void poseMsgToRtr(const geometry_msgs::Pose& pose, rtr::Transform& rtr_transform)
-{
-  // set position x/y/z
-  rtr_transform.t[0] = pose.position.x;
-  rtr_transform.t[1] = pose.position.y;
-  rtr_transform.t[2] = pose.position.z;
-  rtr_transform.R.Set(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-}
 
-inline void poseRtrToMsg(const rtr::Transform& rtr_transform, geometry_msgs::Pose& pose)
-{
-  pose.position.x = rtr_transform.t[0];
-  pose.position.y = rtr_transform.t[1];
-  pose.position.z = rtr_transform.t[2];
-  rtr::Vec3 euler_angles;
-  rtr_transform.R.GetEuler(euler_angles);
-  tf::Quaternion rotation;
-  rotation.setEuler(euler_angles[2], euler_angles[1], euler_angles[0]);
-  tf::quaternionTFToMsg(rotation, pose.orientation);
-}
-
-inline void rtrTransformToRtrToolPose(const rtr::Transform& transform, std::array<float, 6>& tool_pose)
-{
-  rtr::Vec3 euler_angles;
-  transform.R.GetEuler(euler_angles);
-  tool_pose = { transform.t[0], transform.t[1], transform.t[2], euler_angles[0], euler_angles[1], euler_angles[2] };
-}
-
-inline void pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
+// TODO(henningkayser): use std::vector<rtr::Config> for path once new header files are available
+inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path,
                                      const robot_state::RobotState& reference_state,
                                      const std::vector<std::string>& joint_names,
                                      robot_trajectory::RobotTrajectory& trajectory)

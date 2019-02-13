@@ -51,7 +51,6 @@
 #include <ros/ros.h>
 
 #include <rtr-api/PathPlanner.hpp>
-#include <rtr-math/Pose.hpp>  // contains rtr::Transform
 #include <rtr-occupancy/Voxel.hpp>
 
 #if RAPID_PLAN_INTERFACE_ENABLED
@@ -84,12 +83,12 @@ struct RapidPlanGoal
   std::vector<uint> state_ids;
 
   // TRANSFORM: an endeffector transform to look for a target state
-  rtr::Transform transform;
+  std::array<float, 6> transform;
   std::array<float, 6> tolerance;  // pose tolerance of the target state
   std::array<float, 6> weights;    // pose distance weights for ranking multiple solutions
 
   // JOINT_STATE
-  rtr::Config joint_state;
+  std::vector<float> joint_state;
 };
 
 class RTRPlannerInterface

@@ -222,9 +222,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     unsigned int start_id = findClosestConfigId(start_config, roadmap_states);
     if (goal.type == RapidPlanGoal::Type::TRANSFORM)
     {
-      rtr::ToolPose target;
-      rtrTransformToRtrToolPose(goal.transform, target);
-      result = planner_.FindPath(start_id, target, collisions, goal.tolerance, goal.weights, waypoints, edges, timeout);
+      result = planner_.FindPath(start_id, goal.transform, collisions, goal.tolerance, goal.weights, waypoints, edges, timeout);
     }
     else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
     {
