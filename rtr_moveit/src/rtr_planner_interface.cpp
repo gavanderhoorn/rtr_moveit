@@ -201,6 +201,11 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       std::vector<unsigned int> goal_state_ids = { findClosestConfigId(goal.joint_state, roadmap_states) };
       result = planner_.FindPath(start_id, goal_state_ids, collisions, waypoints, edges, timeout);
     }
+    else
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Unable to handle RapidPlanGoal without goal type - Should be one of TRANSFORM, STATE_IDS, JOINT_STATE");
+      return false;
+    }
 
     // debug output
     if (debug_)
