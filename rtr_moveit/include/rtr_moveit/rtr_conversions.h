@@ -76,7 +76,7 @@ inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path
                                      const std::vector<std::string>& joint_names,
                                      robot_trajectory::RobotTrajectory& trajectory)
 {
-  ROS_ASSERT_MSG(joint_names.size() != path[0].size(), "Joint values don't match joint names");
+  ROS_ASSERT_MSG(joint_names.size() == path[0].size(), "Joint values don't match joint names");
   for (const rtr::Config& joint_state : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
