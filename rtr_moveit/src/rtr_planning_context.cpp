@@ -146,7 +146,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
     return;
 
   if (request_.num_planning_attempts > 1)
-    ROS_WARN_NAMED(LOGNAME, "Ignoring parameter 'num_planning_attempts' - RapidPlan is deterministic");
+    ROS_INFO_NAMED(LOGNAME, "Ignoring parameter 'num_planning_attempts' - RapidPlan is deterministic");
 
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
