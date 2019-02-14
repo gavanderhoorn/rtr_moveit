@@ -157,8 +157,7 @@ travis_run apt-get -qq install mcrypt python-pip
 travis_run pip install gdown
 travis_run gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
 travis_run cat rtr_0.1.2-16-gdf5884d.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
-travis_run chmod +x rtr_0.1.2.deb.run
-travis_run ./rtr_0.1.2.deb.run
+travis_run dash rtr_0.1.2.deb.run
 
 # TODO: restore run before script
 set -x
