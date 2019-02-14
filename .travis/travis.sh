@@ -156,7 +156,7 @@ travis_run rosdep update
 travis_run apt-get -qq install mcrypt python-pip
 travis_run pip install gdown
 travis_run gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
-travis_run cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
+cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
 md5sum rtr_0.1.2.deb.run.crypt
 md5sum rtr_0.1.2.deb.run
 bash rtr_0.1.2.deb.run
