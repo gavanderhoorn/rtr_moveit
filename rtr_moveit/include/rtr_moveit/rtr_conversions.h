@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Conversion functions between MoveIt!/RapidPlan types
  */
 
 #ifndef RTR_MOVEIT_RTR_CONVERSIONS_H

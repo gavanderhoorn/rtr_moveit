@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: A planning context that handles MotionPlanRequests and runs planning attempts using the RTRPlanningInterface.
  */
 
 #ifndef RTR_MOVEIT_RTR_PLANNING_CONTEXT_H

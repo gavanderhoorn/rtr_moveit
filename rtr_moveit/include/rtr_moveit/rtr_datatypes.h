@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Structs for roadmap and configuration data types
  */
 
 #ifndef RTR_MOVEIT_RTR_DATATYPES_H

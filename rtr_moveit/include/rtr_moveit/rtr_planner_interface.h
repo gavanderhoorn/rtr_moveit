@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: A planning interface that offers convenient and thread-safe collision checking and planning with RapidPlan.
  */
 
 #ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H

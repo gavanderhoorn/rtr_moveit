@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Helper functions for searching and sorting roadmap data
  */
 
 #ifndef RTR_MOVEIT_ROADMAP_UTIL_H
@@ -42,7 +42,7 @@
 #include <string>
 #include <vector>
 
-#include <rtr-api/PathPlanner.hpp> // contains rtr::Config
+#include <rtr-api/PathPlanner.hpp> // contains rtr::Config, rtr::ToolPose
 
 namespace rtr_moveit
 {
