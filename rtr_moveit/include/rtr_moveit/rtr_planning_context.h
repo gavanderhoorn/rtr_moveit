@@ -113,11 +113,39 @@ private:
                          std::vector<RapidPlanGoal>& goals);
 
   /** Converts the given goal constraints to a valid RapidPlanGoal that can be used with the RTRPlannerInterface
-   * @param  goal_constraints - the goal constraints vector
+   * @param  goal_constraints - the goal constraints to extract
    * @param  goal - the returned RapidPlanGoal
    * @return true on success
    */
   bool getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal);
+
+  /** Process a set of JointConstraints and return a valid RapidPlanGoal
+   * @param  joint_constraints - the target JointConstraint vector
+   * @param  goal - the returned RapidPlanGoal
+   * @param  failure_msg - a failure description if not successful
+   * @return true on success
+   */
+  bool getRapidPlanGoal(const std::vector<moveit_msgs::JointConstraint>& joint_constraints, RapidPlanGoal& goal,
+                        std::string& failure_msg);
+
+  /** Process the constraint region of a PositionConstraint and return a valid RapidPlanGoal
+   * NOTE: Only a single constraint region of type Box or Sphere is supported.
+   * @param  position_constraint - the target PositionConstraint containing a constraints region
+   * @param  goal - the returned RapidPlanGoal
+   * @param  failure_msg - a failure description if not successful
+   * @return true on success
+   */
+  bool getRapidPlanGoal(const moveit_msgs::PositionConstraint& position_constraint, RapidPlanGoal& goal,
+                        std::string& failure_msg);
+
+  /** Process the target orientation and tolerances of the OrientationConstraint to a valid RapidPlanGoal
+   * @param  orientation_constraints - the target OrientationConstraint
+   * @param  goal - the returned RapidPlanGoal
+   * @param  failure_msg - a failure description if not successful
+   * @return true on success
+   */
+  bool getRapidPlanGoal(const moveit_msgs::OrientationConstraint& orientation_constraint, RapidPlanGoal& goal,
+                        std::string& failure_msg);
 
   const RTRPlannerInterfacePtr planner_interface_;
   const moveit::core::JointModelGroup* jmg_;
