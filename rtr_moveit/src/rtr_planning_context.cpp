@@ -36,20 +36,25 @@
  * Desc: Implementation of the RTRPlanningContext
  */
 
+// C++
 #include <string>
 #include <vector>
 #include <algorithm>
 
+// Eigen
 #include <Eigen/Geometry>
 
+// MoveIt! constraints
+#include <moveit/constraint_samplers/constraint_sampler.h>
+#include <moveit/constraint_samplers/default_constraint_samplers.h>
+#include <moveit/constraint_samplers/union_constraint_sampler.h>
+#include <moveit_msgs/Constraints.h>
+
+// rtr_moveit
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
 #include <rtr_moveit/roadmap_util.h>
-
-#include <rtr-occupancy/Box.hpp>
-
-#include <moveit_msgs/Constraints.h>
 
 namespace rtr_moveit
 {
@@ -74,6 +79,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
                                                         double& planning_time)
 {
   ros::Time start_time = ros::Time::now();
+  terminate_plan_time_ = start_time + ros::Duration(request_.allowed_planning_time);
   moveit_msgs::MoveItErrorCodes result;
   result.val = result.FAILURE;
 
@@ -84,8 +90,8 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
   }
 
-  // check planner interface
-  if (!planner_interface_->isReady() && !planner_interface_->initialize())
+  // extract RapidPlanGoals;
+  if (!initRapidPlanGoals(request_.goal_constraints, goals_))
     return result;
 
   // prepare collision scene
@@ -93,45 +99,42 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   std::vector<rtr::Voxel> collision_voxels;
   planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
-  // convert start state
-  // TODO(henningkayser): make sure joint positions are in order of kinematic chain
+  // initialize start state
   rtr::Config start_config;
-  sensor_msgs::JointState start_state = request_.start_state.joint_state;
-  for (double joint_value : start_state.position)
-    start_config.push_back(joint_value);
+  if (!initStartState(start_config))
+    return result;
 
-  // run planning attempt
+  // Iterate goals and plan until we have a solution
   std::vector<rtr::Config> solution_path;
-  double timeout = request_.allowed_planning_time * 1000;  // seconds -> milliseconds
   result.val = result.PLANNING_FAILED;
-
-  // Iterate goals until we have a solution
   for (const RapidPlanGoal& goal : goals_)
   {
+    // check time
+    double timeout = (terminate_plan_time_ - ros::Time::now()).toSec() * 1000;  // seconds -> milliseconds
+    if (timeout <= 0.0)
+    {
+      result.val = moveit_msgs::MoveItErrorCodes::TIMED_OUT;
+      break;
+    }
+
+    // run plan
     if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
     {
       if (solution_path.empty())
       {
         ROS_WARN_NAMED(LOGNAME, "Cannot convert empty path to robot trajectory");
+        continue;
       }
-      else if (start_state.name.size() != solution_path[0].size())
-      {
-        ROS_WARN_NAMED(LOGNAME, "Cannot convert path - Joint values don't match joint names");
-      }
-      else
-      {
-        // convert solution path to robot trajectory
-        result.val = result.SUCCESS;
-        const robot_state::RobotState& reference_state = planning_scene_->getCurrentState();
-        trajectory.reset(new robot_trajectory::RobotTrajectory(reference_state.getRobotModel(), group_));
-        pathRtrToRobotTrajectory(solution_path, reference_state, start_state.name, *trajectory);
-        break;
-      }
+      // convert solution path to robot trajectory
+      result.val = result.SUCCESS;
+      const robot_state::RobotState& reference_state = planning_scene_->getCurrentState();
+      trajectory.reset(new robot_trajectory::RobotTrajectory(reference_state.getRobotModel(), group_));
+      pathRtrToRobotTrajectory(solution_path, reference_state, joint_model_names_, *trajectory);
+      break;
     }
     solution_path.clear();
-    // TODO(henningkayser): reduce timeout
   }
-  // TODO(henningkayser): connect start and goal states if necessary
+  // TODO(henningkayser): connect start and goal state if necessary
   planning_time = (ros::Time::now() - start_time).toSec();
   return result;
 }
@@ -155,31 +158,59 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
   error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
+  // planning scene should be set
   if (!planning_scene_)
   {
     ROS_ERROR_NAMED(LOGNAME, "Cannot configure planning context while planning scene has not been set");
     return;
   }
 
+  // get joint model group
   jmg_ = planning_scene_->getCurrentState().getJointModelGroup(group_);
+  joint_model_names_ = jmg_->getActiveJointModelNames();
 
-  // extract RapidPlanGoals;
-  if (!getRapidPlanGoals(request_.goal_constraints, goals_))
+  // check planner interface
+  if (!planner_interface_->isReady() && !planner_interface_->initialize())
     return;
+
+  // get roadmap configs
+  if (!planner_interface_->getRoadmapConfigs(roadmap_, roadmap_configs_) || roadmap_configs_.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Unable to load config states from roadmap file");
+    return;
+  }
+
+  // check if joint dimension in roadmap fits to joint model group
+  if (roadmap_configs_[0].size() != joint_model_names_.size())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Roadmap state dimension does not fit to joint count of planning group");
+    return;
+  }
+
+  // get roadmap poses
+  if (!planner_interface_->getRoadmapTransforms(roadmap_, roadmap_poses_) || roadmap_poses_.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Unable to load state poses from roadmap file");
+    return;
+  }
 
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
 }
 
-bool RTRPlanningContext::getRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
+bool RTRPlanningContext::initRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
                                            std::vector<RapidPlanGoal>& goals)
 {
   bool success = false;
   for (const moveit_msgs::Constraints& goal_constraint : goal_constraints)
   {
     RapidPlanGoal goal;
-    if (getRapidPlanGoal(goal_constraint, goal))
+    robot_state::RobotStatePtr goal_state;
+    if (getRapidPlanGoal(goal_constraint, goal, goal_state))
+    {
       goals.push_back(goal);
+      goal_states_.push_back(goal_state);
+    }
   }
   std::string error_msg;
   if (goal_constraints.empty())
@@ -191,202 +222,102 @@ bool RTRPlanningContext::getRapidPlanGoals(const std::vector<moveit_msgs::Constr
   return success;
 }
 
-bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal)
+bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal,
+                                          robot_state::RobotStatePtr& goal_state)
 {
-  bool success = false;
-  std::string warn_msg;
+  const double allowed_joint_distance = M_PI;
+  const double allowed_position_distance = 0.1;
+  const int max_goal_states = 1;
+  goal.type = RapidPlanGoal::Type::STATE_IDS;
 
-  bool has_joint_constraint = goal_constraint.joint_constraints.size() > 0;
-  bool has_position_constraint = goal_constraint.position_constraints.size() == 1;
-  bool has_orientation_constraint = goal_constraint.orientation_constraints.size() == 1;
-  if (has_joint_constraint == (has_position_constraint || has_orientation_constraint))
+  // initialize constraint samplers
+  std::vector<constraint_samplers::ConstraintSamplerPtr> samplers;
+  // joint constraint
+  if (!goal_constraint.joint_constraints.empty())
   {
-    warn_msg = "Constraints must either include joint or position/orientation constraints";
+    // joint state sampler
+    constraint_samplers::JointConstraintSamplerPtr joint_sampler(
+        new constraint_samplers::JointConstraintSampler(planning_scene_, group_));
+    joint_sampler->configure(goal_constraint);
+    samplers.push_back(joint_sampler);
   }
-  else if (goal_constraint.visibility_constraints.size() > 0)
+  // position/orientation constraint
+  if (!goal_constraint.position_constraints.empty() || !goal_constraint.orientation_constraints.empty())
   {
-    warn_msg = "Found visibility constraints which are not supported";
-  }
-  else
-  {
-    if (has_joint_constraint)  // JOINT_STATE goal
-    {
-      success = getRapidPlanGoal(goal_constraint.joint_constraints, goal, warn_msg);
-    }
-    else  // Position/Orientation goals (TRANSFORM or STATE_IDS goal)
-    {
-      // process position constraint
-      // TODO(henningkayser): handle multiple position/orientation constraints
-      // set TRANSFORM tolerance high since we assume high tolerance if goal/orientation is not constrained
-      goal.tolerance.fill(std::numeric_limits<float>::max());
-      bool position_constraint_failed = has_position_constraint;
-      if (has_position_constraint)
-        position_constraint_failed = !getRapidPlanGoal(goal_constraint.position_constraints[0], goal, warn_msg);
-
-      // process orientation constraint
-      bool orientation_constraint_failed = has_orientation_constraint;
-      if (has_orientation_constraint)
-        orientation_constraint_failed = !getRapidPlanGoal(goal_constraint.orientation_constraints[0], goal, warn_msg);
-      // successful if none of position/orientation constraint failed
-      success = !(position_constraint_failed || orientation_constraint_failed);
-    }
+    // IK sampler
+    constraint_samplers::IKConstraintSamplerPtr ik_sampler(
+        new constraint_samplers::IKConstraintSampler(planning_scene_, group_));
+    ik_sampler->configure(goal_constraint);
+    samplers.push_back(ik_sampler);
   }
 
-  if (!success)
-    ROS_WARN_STREAM_NAMED(LOGNAME, "Failed to process goal constraint - " << warn_msg);
-  return success;
-}
-
-bool RTRPlanningContext::getRapidPlanGoal(const std::vector<moveit_msgs::JointConstraint>& joint_constraints, RapidPlanGoal& goal,
-                                          std::string& failure_msg)
-{
-  std::vector<std::string> joint_names = jmg_->getActiveJointModelNames();
-  if (joint_constraints.size() != joint_names.size())
+  // there should be either joint or position/orientation constraints for sampling
+  if (samplers.empty())
   {
-    failure_msg = "Invalid number of joint constraints";
+    ROS_ERROR_NAMED(LOGNAME, "No joint or position/orientation constraints in goal constraints set");
     return false;
   }
-  goal.type = RapidPlanGoal::Type::JOINT_STATE;
-  for (const std::string& joint_name : joint_names)
-    for (const moveit_msgs::JointConstraint& joint_constraint : joint_constraints)
-      if (joint_constraint.joint_name == joint_name)
-        goal.joint_state.push_back(joint_constraint.position);
-  failure_msg = "Joint constraints contain duplicates";     // if !success
-  return goal.joint_state.size() == joint_names.size();  // all joints must be set
-}
 
-bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::PositionConstraint& position_constraint, RapidPlanGoal& goal,
-                                          std::string& failure_msg)
-{
-  if (position_constraint.link_name != jmg_->getLinkModelNames().back())
+  // sample goal from roadmap states
+  constraint_samplers::UnionConstraintSampler union_sampler(planning_scene_, group_, samplers);
+  const robot_state::RobotState& robot_state = planning_scene_->getCurrentState();
+  robot_state::RobotState sample_state(robot_state);
+  std::vector<double> joint_positions(jmg_->getActiveJointModels().size());
+  rtr::Config sample_config(joint_positions.size());
+  std::vector<float> distances;
+  while (ros::Time::now() < terminate_plan_time_)
   {
-    failure_msg = "Position constraint does not apply to the endeffector";
-  }
-  else if (position_constraint.header.frame_id != roadmap_.volume.base_frame)
-  {
-    failure_msg = "Frame of Position constraint does not align with the roadmap frame";
-  }
-  else if (position_constraint.constraint_region.primitives.size() != 1 &&
-      position_constraint.constraint_region.primitive_poses.size() != 1)
-  {
-    failure_msg = "Invalid number of position constraint region primitives, must be 1";
-  }
-  else  // Extract constraints
-  {
-    shape_msgs::SolidPrimitive constraint_primitive = position_constraint.constraint_region.primitives[0];
-    geometry_msgs::Pose constraint_pose = position_constraint.constraint_region.primitive_poses[0];
-    if (constraint_primitive.type == shape_msgs::SolidPrimitive::BOX)  // Construct TRANSFORM with box tolerances
+    if (!union_sampler.sample(sample_state, robot_state, 100))
+      continue;
+    sample_state.copyJointGroupPositions(group_, joint_positions);
+    // copy joint values to rtr::Config
+    std::transform(std::begin(joint_positions), std::end(joint_positions), std::begin(sample_config),
+                   [](double d) -> float {return float(d);});
+    // search for goal state candidates within allowed joint distance
+    //TODO(henningkayser): (pre-)filter by allowed position distance
+    findClosestConfigs(sample_config, roadmap_configs_, goal.state_ids, distances, max_goal_states, allowed_joint_distance);
+    if (!goal.state_ids.empty())
     {
-      // TODO(henningkayser): check if primitive orientation aligns with volume region
-      goal.type = RapidPlanGoal::Type::TRANSFORM;
-      goal.transform[0] = constraint_pose.position.x;
-      goal.transform[1] = constraint_pose.position.y;
-      goal.transform[2] = constraint_pose.position.z;
-      goal.tolerance[0] = constraint_primitive.dimensions[0];
-      goal.tolerance[1] = constraint_primitive.dimensions[1];
-      goal.tolerance[2] = constraint_primitive.dimensions[2];
+      goal_state = std::make_shared<robot_state::RobotState>(sample_state);
       return true;
-    }
-    else if (constraint_primitive.type == shape_msgs::SolidPrimitive::SPHERE)  // Look for STATE_IDS within sphere radius
-    {
-      std::vector<rtr::ToolPose> roadmap_poses;
-      if (planner_interface_->getRoadmapTransforms(roadmap_, roadmap_poses))
-      {
-        goal.type = RapidPlanGoal::Type::STATE_IDS;
-        rtr::ToolPose rtr_pose;
-        rtr_pose[0] = constraint_pose.position.x;
-        rtr_pose[1] = constraint_pose.position.y;
-        rtr_pose[2] = constraint_pose.position.z;
-        float threshold = constraint_primitive.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS];
-        findClosestPositions(rtr_pose, roadmap_poses, goal.state_ids, roadmap_poses.size(), threshold);
-        //std::cout << "threshold " << threshold << std::endl;
-        //std::cout << "constraint pose " << rtr_pose[0] << " " << rtr_pose[1] << " " << rtr_pose[2] << std::endl;
-        failure_msg = "No roadmap states are within distance threshold of the goal constraint";  // if !success
-        return !goal.state_ids.empty();
-      }
-      failure_msg = "Unable to retrieve roadmap transforms from planner interface";
-    }
-    else {
-      failure_msg = "Position constraint region is not supported - should be BOX or SPHERE";
     }
   }
   return false;
 }
 
-bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::OrientationConstraint& orientation_constraint, RapidPlanGoal& goal,
-                                          std::string& failure_msg)
+bool RTRPlanningContext::initStartState(rtr::Config& start_config)
 {
-  if (orientation_constraint.link_name != jmg_->getLinkModelNames().back())
+  start_config.clear();
+  start_state_ = std::make_shared<robot_state::RobotState>(planning_scene_->getCurrentState());
+
+  // convert start state from MotionPlanRequest
+  if (!request_.start_state.joint_state.position.empty())
   {
-    failure_msg = "Orientation constraint does not apply to the endeffector";
-  }
-  if (orientation_constraint.header.frame_id != roadmap_.volume.base_frame)
-  {
-    failure_msg = "Frame of orientation constraint does not align with the roadmap frame";
+    std::size_t num_joints = request_.start_state.joint_state.position.size();
+    for (const std::string& joint_name : joint_model_names_)
+      for (std::size_t i = 0; i < num_joints; i++)
+        if (joint_name == request_.start_state.joint_state.name[i])
+          start_config.push_back(request_.start_state.joint_state.position[i]);
+    if (start_config.size() != joint_model_names_.size())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Invalid start state in planning request - joint message does not match to joint group");
+      return false;
+    }
+    // write requested joint values to start state
+    start_state_->setVariablePositions(request_.start_state.joint_state.name,
+                                       request_.start_state.joint_state.position);
   }
   else
   {
-    using namespace Eigen;
-    geometry_msgs::Quaternion q = orientation_constraint.orientation;
-    Quaterniond orientation(q.w, q.x, q.y, q.z);
-    Matrix3d constraint_rotations = orientation.toRotationMatrix();
-    const double& x_axis_tol = orientation_constraint.absolute_x_axis_tolerance;
-    const double& y_axis_tol = orientation_constraint.absolute_y_axis_tolerance;
-    const double& z_axis_tol = orientation_constraint.absolute_z_axis_tolerance;
-    if (goal.type == RapidPlanGoal::Type::STATE_IDS)  // STATE_IDS
-    {
-      std::vector<rtr::ToolPose> roadmap_poses;
-      // search for roadmap states that meet the orientation constraints
-      if (planner_interface_->getRoadmapTransforms(roadmap_, roadmap_poses) && !roadmap_poses.empty())
-      {
-        // if empty, initialize with all available states in the roadmap
-        if (goal.state_ids.empty())
-        {
-          goal.state_ids.resize(roadmap_poses.size());
-          std::iota(std::begin(goal.state_ids), std::end(goal.state_ids), 0);
-        }
-
-        const Quaterniond identity(1, 0, 0, 0);
-        for (std::size_t i = goal.state_ids.size() - 1; i >= 0; i--)
-        {
-          const rtr::ToolPose& state_pose = roadmap_poses[goal.state_ids[i]];
-          //std::cout << "state pose " << state_pose[0] << " " << state_pose[1] << " " << state_pose[2] << std::endl;
-
-          // set orientation error as roll * pitch * yaw * constraint.inverse()
-          Quaterniond orientation_error = AngleAxisd(state_pose[3], Vector3d::UnitX()) *
-            AngleAxisd(state_pose[4], Vector3d::UnitY()) *
-            AngleAxisd(state_pose[5], Vector3d::UnitZ()) *
-            orientation.inverse();
-          Matrix3d rot_error = orientation_error.toRotationMatrix();
-
-          // check if axis rotations are within tolerances
-          if (identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitX(), rot_error.col(0))) > x_axis_tol ||
-              identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitZ(), rot_error.col(1))) > y_axis_tol ||
-              identity.angularDistance(Quaterniond().setFromTwoVectors(Vector3d::UnitY(), rot_error.col(2))) > z_axis_tol)
-          {
-            std::swap(goal.state_ids[i], goal.state_ids.back());  // swap with back and remove last element (more efficient)
-            goal.state_ids.pop_back();
-          }
-        }
-        failure_msg = "No roadmap states meet the orientation constraint";  // if !success
-        return !goal.state_ids.empty();
-      }
-      failure_msg = "Unable to retrieve roadmap transforms from planner interface";
-    }
-    else  // TRANSFORM
-    {
-      // directly convert rotation and tolerances to rtr::ToolPose
-      Eigen::Vector3d euler_angles = constraint_rotations.eulerAngles(0, 1, 2);
-      goal.transform[3] = euler_angles[0];
-      goal.transform[4] = euler_angles[1];
-      goal.transform[5] = euler_angles[2];
-      goal.tolerance[3] = x_axis_tol;
-      goal.tolerance[4] = y_axis_tol;
-      goal.tolerance[5] = z_axis_tol;
-      return true;
-    }
+    // if start state in request is not populated, take the current state of the planning scene
+    ROS_WARN_NAMED(LOGNAME, "Start state in MotionPlanRquest is not populated - using current state from planning scene.");
+    std::vector<double> joint_positions;
+    start_state_->copyJointGroupPositions(group_, joint_positions);
+    for (const double& joint_position : joint_positions)
+      start_config.push_back(joint_position);
   }
-  return false;
+
+  return true;
 }
 
 void RTRPlanningContext::clear()

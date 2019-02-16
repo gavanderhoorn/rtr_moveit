@@ -188,7 +188,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     // Find closest existing configuration in roadmap that can be connected to the start state
     // TODO(henningkayser): add start state tolerance parameter
     // TODO(henningkayser): discuss API - we should search for this more efficiently and outside of the mutex scope
-    unsigned int start_id = findClosestConfigId(start_config, roadmap_states);
+    int start_id = findClosestConfigId(start_config, roadmap_states);
     if (goal.type == RapidPlanGoal::Type::TRANSFORM)
     {
       result = planner_.FindPath(start_id, goal.transform, collisions, goal.tolerance, goal.weights, waypoints, edges,

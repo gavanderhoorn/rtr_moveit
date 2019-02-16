@@ -109,50 +109,40 @@ private:
    * @param  goal - the RapidPlanGoal result vector
    * @return true on success, false if no RapidPlanGoals could be extracted from non-empty goal_constraints
    */
-  bool getRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
-                         std::vector<RapidPlanGoal>& goals);
+  bool initRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
+                          std::vector<RapidPlanGoal>& goals);
 
-  /** Converts the given goal constraints to a valid RapidPlanGoal that can be used with the RTRPlannerInterface
+  /** Converts the given goal constraints to a valid RapidPlanGoal that can be used with the RTRPlannerInterface.
+   *  If the RapidPlanGoal does not fully meet the constraints, the robot state goal_state is initialized as the
+   *  actual goal.
    * @param  goal_constraints - the goal constraints to extract
    * @param  goal - the returned RapidPlanGoal
+   * @param  goal_state - the robot state that fulfills the constraints in case the RapidPlanGoal doesn't
    * @return true on success
    */
-  bool getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal);
+  bool getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal,
+                        robot_state::RobotStatePtr& goal_state);
 
-  /** Process a set of JointConstraints and return a valid RapidPlanGoal
-   * @param  joint_constraints - the target JointConstraint vector
-   * @param  goal - the returned RapidPlanGoal
-   * @param  failure_msg - a failure description if not successful
-   * @return true on success
+  /** Initializes start_config from the MotionPlanRequest. If the joint values in the MotionPlanRequest
+   *  are not populated, the current state of the planning scene is used is used.
+   *  @param start_config - the returned joint config
+   *  @return true on success, false if the joint state inside the MotionPlanRequest is invalid
    */
-  bool getRapidPlanGoal(const std::vector<moveit_msgs::JointConstraint>& joint_constraints, RapidPlanGoal& goal,
-                        std::string& failure_msg);
+  bool initStartState(rtr::Config& start_config);
 
-  /** Process the constraint region of a PositionConstraint and return a valid RapidPlanGoal
-   * NOTE: Only a single constraint region of type Box or Sphere is supported.
-   * @param  position_constraint - the target PositionConstraint containing a constraints region
-   * @param  goal - the returned RapidPlanGoal
-   * @param  failure_msg - a failure description if not successful
-   * @return true on success
-   */
-  bool getRapidPlanGoal(const moveit_msgs::PositionConstraint& position_constraint, RapidPlanGoal& goal,
-                        std::string& failure_msg);
-
-  /** Process the target orientation and tolerances of the OrientationConstraint to a valid RapidPlanGoal
-   * @param  orientation_constraints - the target OrientationConstraint
-   * @param  goal - the returned RapidPlanGoal
-   * @param  failure_msg - a failure description if not successful
-   * @return true on success
-   */
-  bool getRapidPlanGoal(const moveit_msgs::OrientationConstraint& orientation_constraint, RapidPlanGoal& goal,
-                        std::string& failure_msg);
+  robot_state::RobotStatePtr start_state_;
+  std::vector<robot_state::RobotStatePtr> goal_states_;
 
   const RTRPlannerInterfacePtr planner_interface_;
   const moveit::core::JointModelGroup* jmg_;
+  std::vector<std::string> joint_model_names_;
   RoadmapSpecification roadmap_;
+  std::vector<rtr::Config> roadmap_configs_;
+  std::vector<rtr::ToolPose> roadmap_poses_;
   std::vector<RapidPlanGoal> goals_;
-  bool has_roadmap_ = false;
   bool configured_ = false;
+
+  ros::Time terminate_plan_time_;
 };
 }  // namespace rtr_moveit
 

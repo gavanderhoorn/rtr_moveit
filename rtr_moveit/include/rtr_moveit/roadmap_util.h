@@ -54,8 +54,6 @@ namespace
  */
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
-  if (first.size() != second.size())
-    return FLT_MAX;
   float distance = 0.0;
   for (unsigned int i = 0; i < first.size(); i++)
     distance += std::abs(first[i] - second[i]);
