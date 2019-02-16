@@ -251,13 +251,6 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
     samplers.push_back(ik_sampler);
   }
 
-  // there should be either joint or position/orientation constraints for sampling
-  if (samplers.empty())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "No joint or position/orientation constraints in goal constraints set");
-    return false;
-  }
-
   // sample goal from roadmap states
   constraint_samplers::UnionConstraintSampler union_sampler(planning_scene_, group_, samplers);
   const robot_state::RobotState& robot_state = planning_scene_->getCurrentState();

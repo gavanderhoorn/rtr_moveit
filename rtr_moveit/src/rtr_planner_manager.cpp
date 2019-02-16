@@ -36,21 +36,25 @@
  * Desc: Implementation of the RTRPlannerManager
  */
 
+// C++
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
+#include <boost/filesystem.hpp>
 
+// MoveIt!
 #include <moveit/planning_interface/planning_interface.h>
+#include <moveit_msgs/Constraints.h>
 #include <pluginlib/class_list_macros.hpp>
 
+// rtr_moveit
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 
 // ROS parameter loading
-#include <rosparam_shortcuts/rosparam_shortcuts.h>
 #include <ros/package.h>
-#include <boost/filesystem.hpp>
+#include <rosparam_shortcuts/rosparam_shortcuts.h>
 
 namespace rtr_moveit
 {
@@ -100,6 +104,25 @@ public:
       return false;
     }
 
+    // check if there are constraints that only contain joint/position/orientation
+    bool has_valid_constraint = false;
+    for (const moveit_msgs::Constraints& goal_constraint : req.goal_constraints)
+    {
+      if(goal_constraint.visibility_constraints.empty())
+      {
+        has_valid_constraint = !( goal_constraint.joint_constraints.empty()
+                               && goal_constraint.position_constraints.empty()
+                               && goal_constraint.orientation_constraints.empty());
+        if (has_valid_constraint)
+          break;
+      }
+    }
+
+    if (!has_valid_constraint)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Planning request does not contain supported goal constraints - Supported are only joint/position/orientation goals");
+      return false;
+    }
     // Note: Further checks require inspecting the roadmaps, volume region and attached collision objects.
     // This does not belong into the planner manager and should be provided by the planning context.
     // TODO(henningkayser): check if we have a valid roadmap for this request
