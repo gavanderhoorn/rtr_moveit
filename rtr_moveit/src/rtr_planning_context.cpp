@@ -44,6 +44,10 @@
 // Eigen
 #include <Eigen/Geometry>
 
+// ROS parameters
+#include <ros/ros.h>
+#include <rosparam_shortcuts/rosparam_shortcuts.h>
+
 // MoveIt! constraints
 #include <moveit/constraint_samplers/constraint_sampler.h>
 #include <moveit/constraint_samplers/default_constraint_samplers.h>
@@ -61,9 +65,9 @@ namespace rtr_moveit
 static const std::string LOGNAME = "rtr_planning_context";
 RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                                        const RTRPlannerInterfacePtr& planner_interface)
-  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group)
-  , planner_interface_(planner_interface)
-  , roadmap_(roadmap_spec)
+  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group),
+  planner_interface_(planner_interface),
+  roadmap_(roadmap_spec)
 {
   // TODO(henningkayser): load volume from roadmap config file
   roadmap_.volume.base_frame = "base_link";
@@ -158,6 +162,19 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 {
   error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
+  // load defult planner parameters
+  // TODO(henningkayser): support overloading defaults
+  ros::NodeHandle nh("~");
+  std::size_t error = 0;
+  error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_position_distance", allowed_position_distance_);
+  error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_joint_distance", allowed_joint_distance_);
+  error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_goal_states", max_goal_states_);
+  if (error)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Planning Context could not be configured due to missing params");
+    return;
+  }
+
   // planning scene should be set
   if (!planning_scene_)
   {
@@ -194,6 +211,11 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
     return;
   }
 
+  // init parameters
+  //allowed_joint_distance_ = M_PI;
+  //allowed_position_distance_ = 0.1;
+  //max_goal_states_ = 1;
+
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
 }
@@ -225,9 +247,7 @@ bool RTRPlanningContext::initRapidPlanGoals(const std::vector<moveit_msgs::Const
 bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal,
                                           robot_state::RobotStatePtr& goal_state)
 {
-  const double allowed_joint_distance = M_PI;
-  const double allowed_position_distance = 0.1;
-  const int max_goal_states = 1;
+
   goal.type = RapidPlanGoal::Type::STATE_IDS;
 
   // initialize constraint samplers
@@ -268,7 +288,8 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
                    [](double d) -> float {return float(d);});
     // search for goal state candidates within allowed joint distance
     //TODO(henningkayser): (pre-)filter by allowed position distance
-    findClosestConfigs(sample_config, roadmap_configs_, goal.state_ids, distances, max_goal_states, allowed_joint_distance);
+    findClosestConfigs(sample_config, roadmap_configs_, goal.state_ids, distances, max_goal_states_,
+                       allowed_joint_distance_);
     if (!goal.state_ids.empty())
     {
       goal_state = std::make_shared<robot_state::RobotState>(sample_state);

@@ -142,6 +142,11 @@ private:
   std::vector<RapidPlanGoal> goals_;
   bool configured_ = false;
 
+  // parameters
+  double allowed_joint_distance_;
+  double allowed_position_distance_;
+  int max_goal_states_;
+
   ros::Time terminate_plan_time_;
 };
 }  // namespace rtr_moveit
