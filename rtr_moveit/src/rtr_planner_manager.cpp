@@ -120,7 +120,8 @@ public:
 
     if (!has_valid_constraint)
     {
-      ROS_ERROR_NAMED(LOGNAME, "Planning request does not contain supported goal constraints - Supported are only joint/position/orientation goals");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Planning request does not contain supported goal constraints - "
+                                   << "Supported are only joint/position/orientation goals");
       return false;
     }
     // Note: Further checks require inspecting the roadmaps, volume region and attached collision objects.
