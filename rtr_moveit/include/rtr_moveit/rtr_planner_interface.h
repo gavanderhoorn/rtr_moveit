@@ -68,14 +68,11 @@ MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 // A RapidPlan goal specification
 struct RapidPlanGoal
 {
-  // RapidPlan supports either ids of roadmap states or tool pose transforms as goals.
-  // The third JOINT_STATE is handled by looking for nearby roadmap states and calling
-  // the planner with corresponding STATE_IDS.
+  // RapidPlan supports either ids of roadmap states or tool pose transforms as goals
   enum Type
   {
     STATE_IDS,
     TRANSFORM,
-    JOINT_STATE
   };
   Type type;
 
@@ -86,9 +83,6 @@ struct RapidPlanGoal
   std::array<float, 6> transform;
   std::array<float, 6> tolerance;  // pose tolerance of the target state
   std::array<float, 6> weights;    // pose distance weights for ranking multiple solutions
-
-  // JOINT_STATE
-  std::vector<float> joint_state;
 };
 class RTRPlannerInterface
 {
@@ -103,12 +97,12 @@ public:
   bool isReady() const;
 
   /** \brief Run planning attempt and generate a solution path */
-  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config, const RapidPlanGoal& goal,
+  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
              const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
              std::vector<rtr::Config>& solution_path);
 
   /** \brief Run planning attempt and generate solution waypoints and edges */
-  bool solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config, const RapidPlanGoal& goal,
+  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
              const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
              std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
              std::deque<unsigned int>& edges);

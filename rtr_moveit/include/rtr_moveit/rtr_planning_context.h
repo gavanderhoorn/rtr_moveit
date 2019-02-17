@@ -123,12 +123,13 @@ private:
   bool getRapidPlanGoal(const moveit_msgs::Constraints& goal_constraint, RapidPlanGoal& goal,
                         robot_state::RobotStatePtr& goal_state);
 
-  /** Initializes start_config from the MotionPlanRequest. If the joint values in the MotionPlanRequest
-   *  are not populated, the current state of the planning scene is used is used.
-   *  @param start_config - the returned joint config
-   *  @return true on success, false if the joint state inside the MotionPlanRequest is invalid
+  /** Extracts the start state from the MotionPlanRequest and searches for a start state candidate in the roadmap.
+   *  If the joint values in the MotionPlanRequest are not populated, the current state of the planning scene is used.
+   *  @param start_state_id - the returned state id of the start state candidate
+   *  @return true on success, false if the joint state inside the MotionPlanRequest is populated but invalid or if no
+   *  start state candidate could be found inside the roadmap
    */
-  bool initStartState(rtr::Config& start_config);
+  bool initStartState(unsigned int& start_state_id);
 
   /** Connect a waypoint state to a robot trajectory using interpolation and collision checks in the
    *  planning scene.

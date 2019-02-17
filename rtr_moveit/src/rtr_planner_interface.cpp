@@ -117,13 +117,13 @@ bool RTRPlannerInterface::isReady() const
   return true;
 }
 
-bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
                                 const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
                                 const double& timeout, std::vector<rtr::Config>& solution_path)
 {
   std::deque<unsigned int> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
-  bool success = solve(roadmap_spec, start_config, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
+  bool success = solve(roadmap_spec, start_state_id, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
   // TODO(RTR-53): verify waypoints and states? This should already be done in the PathPlanner.
   if (success)
   {
@@ -152,7 +152,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
   return success;
 }
 
-bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const rtr::Config& start_config,
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
                                 const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
                                 const double& timeout, std::vector<rtr::Config>& roadmap_states,
                                 std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges)
@@ -184,31 +184,18 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 
     // Call PathPlanner
     int result = -1;
-    roadmap_states = planner_.GetConfigs();
-    // Find closest existing configuration in roadmap that can be connected to the start state
-    // TODO(RTR-47): add start state tolerance parameter
-    // TODO(RTR-47): discuss API - we should search for this more efficiently and outside of the mutex scope
-    int start_id = findClosestConfigId(start_config, roadmap_states);
     if (goal.type == RapidPlanGoal::Type::TRANSFORM)
     {
-      result = planner_.FindPath(start_id, goal.transform, collisions, goal.tolerance, goal.weights, waypoints, edges,
-                                 timeout);
+      result = planner_.FindPath(start_state_id, goal.transform, collisions, goal.tolerance, goal.weights,
+                                 waypoints, edges, timeout);
     }
     else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
     {
-      result = planner_.FindPath(start_id, goal.state_ids, collisions, waypoints, edges, timeout);
-    }
-    else if (goal.type == RapidPlanGoal::Type::JOINT_STATE)
-    {
-      // TODO(RTR-34): add goal state tolerance
-      // TODO(RTR-34): discuss API - we should search for this more efficiently and outside of the mutex scope
-      // look for goal states and handle like STATE_IDS goal type
-      std::vector<unsigned int> goal_state_ids = { findClosestConfigId(goal.joint_state, roadmap_states) };
-      result = planner_.FindPath(start_id, goal_state_ids, collisions, waypoints, edges, timeout);
+      result = planner_.FindPath(start_state_id, goal.state_ids, collisions, waypoints, edges, timeout);
     }
     else
     {
-      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be one of TRANSFORM, STATE_IDS, JOINT_STATE");
+      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be TRANSFORM or STATE_IDS");
       return false;
     }
 
@@ -235,11 +222,16 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       ROS_DEBUG_STREAM_NAMED(LOGNAME, edges_debug_text);
     }
 
-    if (result == 0)  // SUCCESS
-      ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints");
-    else              // FAILURE
+    if (result != 0)  // FAILURE
+    {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
-    return result == 0;  // 0 == SUCESS
+      return false;
+    }
+
+    // SUCCESS
+    ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints");
+    roadmap_states = planner_.GetConfigs();  // return state configs
+    return result == 0;
   }  // SCOPED MUTEX UNLOCK
 }
 

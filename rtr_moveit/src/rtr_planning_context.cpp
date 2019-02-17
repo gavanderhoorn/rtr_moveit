@@ -105,8 +105,8 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
   planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
   // initialize start state
-  rtr::Config start_config;
-  if (!initStartState(start_config))
+  unsigned int start_state_id;
+  if (!initStartState(start_state_id))
     return result;
 
   // Iterate goals and plan until we have a solution
@@ -124,7 +124,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
 
     // run plan
     const RapidPlanGoal& goal = goals_[goal_pos];
-    if (planner_interface_->solve(roadmap_, start_config, goal, collision_voxels, timeout, solution_path))
+    if (planner_interface_->solve(roadmap_, start_state_id, goal, collision_voxels, timeout, solution_path))
     {
       if (solution_path.empty())
       {
@@ -347,9 +347,9 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
   return false;
 }
 
-bool RTRPlanningContext::initStartState(rtr::Config& start_config)
+bool RTRPlanningContext::initStartState(unsigned int& start_state_id)
 {
-  start_config.clear();
+  rtr::Config start_config;
   start_state_ = std::make_shared<robot_state::RobotState>(planning_scene_->getCurrentState());
 
   // convert start state from MotionPlanRequest
@@ -379,7 +379,11 @@ bool RTRPlanningContext::initStartState(rtr::Config& start_config)
       start_config.push_back(joint_position);
   }
 
-  return true;
+  // search for start state candidate in roadmap
+  start_state_id = findClosestConfigId(start_config, roadmap_configs_, allowed_joint_distance_);
+  if (start_state_id == -1)
+    ROS_ERROR_NAMED(LOGNAME, "Unable to find a start state candidate in the roadmap within the allowed joint distance");
+  return start_state_id >= 0;
 }
 
 void RTRPlanningContext::clear()
