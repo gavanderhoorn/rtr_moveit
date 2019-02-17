@@ -142,17 +142,6 @@ private:
                                    const robot_state::RobotStatePtr& waypoint_state,
                                    bool connect_to_front=false);
 
-  /** Connect a waypoint state to a robot trajectory using interpolation and collision checks in the
-   *  planning scene.
-   * @param trajectory - The trajectory to connect the waypoint to
-   * @param waypoint_state - The waypoint that should be connected to the trajectory
-   * @param connect_to_front - if true the waypoint is prepended, if false appended to the trajectory
-   * @return true on success, false if collisions have occured
-   */
-  bool connectWaypointToTrajectory(const robot_trajectory::RobotTrajectoryPtr& trajectory,
-                                   const robot_state::RobotStatePtr& waypoint_state,
-                                   bool connect_to_front=false);
-
   robot_state::RobotStatePtr start_state_;
   std::vector<robot_state::RobotStatePtr> goal_states_;
 
