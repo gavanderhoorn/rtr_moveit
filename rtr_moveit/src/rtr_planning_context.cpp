@@ -211,11 +211,6 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
     return;
   }
 
-  // init parameters
-  //allowed_joint_distance_ = M_PI;
-  //allowed_position_distance_ = 0.1;
-  //max_goal_states_ = 1;
-
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
 }
