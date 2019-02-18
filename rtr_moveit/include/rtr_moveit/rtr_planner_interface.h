@@ -39,27 +39,27 @@
 #ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 #define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 
-// temporarily disable RapidPlanInterface
-#define RAPID_PLAN_INTERFACE_ENABLED 0
-
+// C++
 #include <deque>
 #include <map>
 #include <mutex>
 #include <string>
 #include <vector>
 
+// ROS
 #include <ros/ros.h>
 
+// MoveIt!
+#include <moveit/macros/class_forward.h>
+
+// RapidPlan
+#include <rtr-api/RapidPlanInterface.hpp>
 #include <rtr-api/PathPlanner.hpp>
+#include <rtr-api/RapidPlanDataTypes.hpp>
 #include <rtr-occupancy/Voxel.hpp>
 
-#if RAPID_PLAN_INTERFACE_ENABLED
-#include <rtr-api/RapidPlanInterface.hpp>
-#endif
-
+// rtr_moveit
 #include <rtr_moveit/rtr_datatypes.h>
-
-#include <moveit/macros/class_forward.h>
 
 namespace rtr_moveit
 {
@@ -72,17 +72,17 @@ struct RapidPlanGoal
   enum Type
   {
     STATE_IDS,
-    TRANSFORM,
+    TOOL_POSE,
   };
   Type type;
 
   // STATE_IDS: a list of target states in the roadmap
-  std::vector<uint> state_ids;
+  std::vector<unsigned int> state_ids;
 
-  // TRANSFORM: an endeffector transform to look for a target state
-  std::array<float, 6> transform;
-  std::array<float, 6> tolerance;  // pose tolerance of the target state
-  std::array<float, 6> weights;    // pose distance weights for ranking multiple solutions
+  // TOOL_POSE an endeffector transform to look for a target state
+  rtr::ToolPose tool_pose;
+  rtr::ToolPose tolerance;  // pose tolerance of the target state
+  rtr::ToolPose weights;    // pose distance weights for ranking multiple solutions
 };
 class RTRPlannerInterface
 {
@@ -143,12 +143,10 @@ private:
   // mutex lock for thread-safe RapidPlan calls
   std::mutex mutex_;
 
-// RapidPlan interfaces
-#if RAPID_PLAN_INTERFACE_ENABLED
+  // RapidPlan interfaces
   rtr::RapidPlanInterface rapidplan_interface_;
-#endif
-
   rtr::PathPlanner planner_;
+  bool rapidplan_interface_enabled_ = true;
 
   // available roadmap specifications
   std::map<std::string, RoadmapSpecification> roadmaps_;

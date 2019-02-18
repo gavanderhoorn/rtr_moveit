@@ -59,6 +59,11 @@ static const std::string LOGNAME = "rtr_planner_interface";
 
 RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
+  // Check if  RapidPlan hardware should be used for collision checking
+  rapidplan_interface_enabled_ = nh_.param("planner_config/rapidplan_interface_enabled", false);
+  if (!rapidplan_interface_enabled_)
+    ROS_WARN_NAMED(LOGNAME, "RapidPlanInterface is disabled - plans will be computed without collision checks");
+
   std::map<std::string, ros::console::levels::Level>  loggers;
   if (ros::console::get_loggers(loggers))
   {
@@ -75,28 +80,29 @@ RTRPlannerInterface::~RTRPlannerInterface()
 
 bool RTRPlannerInterface::initialize()
 {
-#if RAPID_PLAN_INTERFACE_ENABLED
-  // check if hardware is connected
-  if (!rapidplan_interface_.Connected())
+  if (rapidplan_interface_enabled_)
   {
-    ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Hardware is not connected.");
-    return false;
-  }
+    // check if hardware is connected
+    if (!rapidplan_interface_.Connected())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Hardware is not connected.");
+      return false;
+    }
 
-  // try to initialize hardware
-  if (!rapidplan_interface_.Init())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Failed to initialize Hardware.");
-    return false;
-  }
+    // try to initialize hardware
+    if (!rapidplan_interface_.Init())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Failed to initialize Hardware.");
+      return false;
+    }
 
-  // perform handshake
-  if (!rapidplan_interface_.Handshake())
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
-    return false;
+    // perform handshake
+    if (!rapidplan_interface_.Handshake())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
+      return false;
+    }
   }
-#endif
 
   ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
   return true;
@@ -104,14 +110,12 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
-#if RAPID_PLAN_INTERFACE_ENABLED
   // try handshake
-  if (!rapidplan_interface_.Handshake())
+  if (rapidplan_interface_enabled_ && !rapidplan_interface_.Handshake())
   {
     ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Handshake failed.");
     return false;
   }
-#endif
 
   ROS_DEBUG_NAMED(LOGNAME, "RapidPlan interface is ready.");
   return true;
@@ -172,22 +176,26 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 
     // Check collisions using the RapidPlanInterface
     std::vector<uint8_t> collisions;
-#if RAPID_PLAN_INTERFACE_ENABLED
-    if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
+    if (rapidplan_interface_enabled_)
     {
-      ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
-      return false;
+      if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
+      {
+        ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
+        return false;
+      }
     }
-#else
-    collisions.resize(planner_.GetNumEdges());  // dummy
-#endif
+    else
+    {
+      ROS_WARN_NAMED(LOGNAME, "RapidPlan called with disabled collision checks");
+      collisions.resize(planner_.GetNumEdges());  // dummy
+    }
 
     // Call PathPlanner
     int result = -1;
-    if (goal.type == RapidPlanGoal::Type::TRANSFORM)
+    if (goal.type == RapidPlanGoal::Type::TOOL_POSE)
     {
-      result = planner_.FindPath(start_state_id, goal.transform, collisions, goal.tolerance, goal.weights,
-                                 waypoints, edges, timeout);
+      result = planner_.FindPath(start_state_id, goal.tool_pose, collisions, goal.tolerance, goal.weights, waypoints,
+                                 edges, timeout);
     }
     else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
     {
@@ -195,7 +203,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     }
     else
     {
-      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be TRANSFORM or STATE_IDS");
+      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be TOOL_POSE or STATE_IDS");
       return false;
     }
 
@@ -281,6 +289,7 @@ bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& r
     if (!planner_.LoadRoadmap(roadmap_spec.files.occupancy))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_spec.roadmap_id << "' to PathPlanner");
+      std::cout << roadmap_spec.files.occupancy << std::endl;
       return false;
     }
 
@@ -304,17 +313,20 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
   // check if roadmap is already written to hardware
   if (!findRoadmapIndex(roadmap_spec.roadmap_id, roadmap_index))
   {
-#if RAPID_PLAN_INTERFACE_ENABLED
-    // write roadmap and retrieve new roadmap index
-    if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.files.occupancy, roadmap_index))
+    if (rapidplan_interface_enabled_)
     {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_spec.roadmap_id << "' to RapidPlan MPA");
-      return false;
+      // write roadmap and retrieve new roadmap index
+      if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.files.occupancy, roadmap_index))
+      {
+        ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_spec.roadmap_id << "' to RapidPlan MPA");
+        return false;
+      }
     }
-#else
-    // if we don't use hardware, we increase the numbers
-    roadmap_index = roadmap_indices_.size();
-#endif
+    else
+    {
+      // if we don't use hardware, we just increase the numbers
+      roadmap_index = roadmap_indices_.size();
+    }
     roadmap_indices_[roadmap_index] = roadmap_spec.roadmap_id;
   }
   ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_spec.roadmap_id << "'");

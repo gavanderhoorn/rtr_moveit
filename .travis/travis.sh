@@ -153,11 +153,13 @@ export PATH=/usr/lib/ccache:$PATH
 travis_run rosdep update
 
 # Install RapidPlan dependencies
-travis_run apt-get -qq install mcrypt python-pip
+travis_run apt-get -qq install tar mcrypt python-pip
 travis_run pip install gdown
-travis_run gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
-cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
-travis_run bash rtr_0.1.2.deb.run
+travis_run gdown https://drive.google.com/uc?id=1X6suaBlgbfmOzGF2sXNSuyOLPkid484R
+cat rtr_0.1.2-133.tar.gz.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2-133.tar.gz
+travis_run tar xfz rtr_0.1.2-133.tar.gz
+travis_run bash rtr_0.1.2-133/rtr_0.1.2-133.deb.run
+travis_run cp rtr_0.1.2-133/RapidPlanDataTypes.hpp /opt/ros/kinetic/include/rtr-api/
 
 # TODO: restore run before script
 set -x

@@ -49,6 +49,7 @@
 // rtr_moveit
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_datatypes.h>
+#include <rtr-api/OGFileReader.hpp>
 
 namespace rtr_moveit
 {
@@ -152,6 +153,7 @@ private:
   std::vector<rtr::Config> roadmap_configs_;
   std::vector<rtr::ToolPose> roadmap_poses_;
   std::vector<RapidPlanGoal> goals_;
+  std::shared_ptr<rtr::OGFileReader> og_file_;
   bool configured_ = false;
 
   // parameters

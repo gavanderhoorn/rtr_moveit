@@ -61,6 +61,8 @@
 #include <rtr_moveit/rtr_conversions.h>
 #include <rtr_moveit/roadmap_search.h>
 
+#include <rtr-api/OGFileReader.hpp>
+
 namespace rtr_moveit
 {
 static const std::string LOGNAME = "rtr_planning_context";
@@ -239,8 +241,16 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   if (!planner_interface_->isReady() && !planner_interface_->initialize())
     return;
 
+  og_file_.reset(new rtr::OGFileReader(roadmap_.files.occupancy));
+
+  if (!og_file_->IsValid())
+  {
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "Roadmap file invalid " << roadmap_.files.occupancy << "'");
+    return;
+  }
+
   // get roadmap configs
-  if (!planner_interface_->getRoadmapConfigs(roadmap_, roadmap_configs_) || roadmap_configs_.empty())
+  if (!og_file_->GetConfigs(roadmap_configs_) || roadmap_configs_.empty())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to load config states from roadmap file");
     return;
@@ -254,7 +264,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   }
 
   // get roadmap poses
-  if (!planner_interface_->getRoadmapTransforms(roadmap_, roadmap_poses_) || roadmap_poses_.empty())
+  if (!og_file_->GetPoses(roadmap_poses_) || roadmap_poses_.empty())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to load state poses from roadmap file");
     return;
