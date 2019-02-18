@@ -12,20 +12,21 @@ add_definitions(-W -Wall -Wextra
 
 # Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
-	geometry_msgs
-	moveit_core
-	moveit_msgs
-	moveit_ros_planning
-	pcl_ros
-	pluginlib
-	rosconsole
-	roscpp
-	roslint
-	rosparam_shortcuts
-	rtr-api
-	rtr-occupancy
-	tf
-	trajectory_msgs
+  geometry_msgs
+  moveit_core
+  moveit_msgs
+  moveit_ros_planning
+  pcl_ros
+  pluginlib
+  rosconsole
+  roscpp
+  roslint
+  rosparam_shortcuts
+  rtr-api
+  rtr-core
+  rtr-occupancy
+  tf
+  trajectory_msgs
 )
 
 # System dependencies are found with CMake's conventions
@@ -39,6 +40,8 @@ catkin_package(
     moveit_core
     pluginlib
     roscpp
+    rtr-api
+    rtr-core
   INCLUDE_DIRS
     include
   LIBRARIES
