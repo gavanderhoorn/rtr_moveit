@@ -61,6 +61,7 @@
 #include <moveit/collision_detection_fcl/collision_world_fcl.h>
 
 #include <rtr_moveit/rtr_datatypes.h>
+#include <rtr-api/RapidPlanDataTypes.hpp>
 
 // RapidPlan
 #include <rtr-occupancy/Voxel.hpp>
@@ -69,13 +70,13 @@ namespace rtr_moveit
 {
 namespace
 {
-inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path,
+inline void pathRtrToRobotTrajectory(const std::vector<rtr::Config>& path,
                                      const robot_state::RobotState& reference_state,
                                      const std::vector<std::string>& joint_names,
                                      robot_trajectory::RobotTrajectory& trajectory)
 {
   ROS_ASSERT_MSG(joint_names.size() == path[0].size(), "Joint values don't match joint names");
-  for (const std::vector<float>& joint_config : path)
+  for (const rtr::Config& joint_config : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
     for (std::size_t i = 0; i < joint_names.size(); ++i)

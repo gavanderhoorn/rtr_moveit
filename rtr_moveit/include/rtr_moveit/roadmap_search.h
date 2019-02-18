@@ -42,7 +42,7 @@
 #include <string>
 #include <vector>
 
-#include <rtr-api/PathPlanner.hpp> // contains rtr::Config, rtr::ToolPose
+#include <rtr-api/RapidPlanDataTypes.hpp> // contains rtr::Config, rtr::ToolPose
 
 namespace rtr_moveit
 {
