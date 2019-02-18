@@ -60,6 +60,11 @@ namespace rtr_moveit
 {
 const std::string LOGNAME = "rtr_planner_manager";
 
+// planner interface constants
+const std::string PLANNER_DESCRIPTION = "RapidPlan";
+// default roadmap planner id (NOTE: in the future we could support diferent selection modes)
+const std::string ROADMAP_DEFAULT = "Default";
+
 class RTRPlannerManager : public planning_interface::PlannerManager
 {
 public:
@@ -71,7 +76,8 @@ public:
   bool initialize(const robot_model::RobotModelConstPtr& robot_model, const std::string& ns)
   {
     // load config
-    loadRoadmapConfigurations(robot_model->getJointModelGroupNames());
+    group_names_ = robot_model->getJointModelGroupNames();
+    loadRoadmapConfigurations();
     if (group_configs_.empty())
     {
       ROS_ERROR_NAMED(LOGNAME, "Failed at loading any group configurations from config file.");
@@ -90,6 +96,10 @@ public:
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");
       return false;
     }
+
+    // set default planner ids
+    for (const std::pair<std::string, GroupConfig>& group_configs_item : group_configs_)
+      nh_.setParam("/move_group/" + group_configs_item.first + "/default_planner_config", ROADMAP_DEFAULT);
 
     return true;
   }
@@ -135,22 +145,29 @@ public:
   /** \brief Returns the planner description */
   std::string getDescription() const
   {
-    return "RTR";
+    return PLANNER_DESCRIPTION;
   }
 
   /** \brief Returns the names of available planning algorithms */
   void getPlanningAlgorithms(std::vector<std::string>& algs) const
   {
-    algs.resize(1);
-    algs[0] = "RapidPlan";
+    algs.clear();
+    for (const std::string& group_name : group_names_)
+      algs.push_back(group_name);
+    for (const std::pair<std::string, GroupConfig>& group_configs_item : group_configs_)
+    {
+      algs.push_back(group_configs_item.first + "[" + ROADMAP_DEFAULT + "]");
+      for (const std::string& roadmap_id : group_configs_item.second.roadmap_ids)
+        algs.push_back(group_configs_item.first + "[" + roadmap_id + "]");
+    }
   }
 
-  void loadRoadmapConfigurations(const std::vector<std::string>& group_names)
+  void loadRoadmapConfigurations()
   {
     // load group configs
     group_configs_.clear();
     std::set<std::string> roadmap_ids;
-    for (const std::string& group_name : group_names)
+    for (const std::string& group_name : group_names_)
     {
       if (!nh_.hasParam(group_name))
       {
@@ -256,7 +273,15 @@ public:
       // TODO(RTR-31): look for suitable roadmap if we have multiple
       GroupConfig group_config = group_config_search->second;
       std::string group_roadmap = group_config.default_roadmap_id;
-      if (group_roadmap.empty() && !group_config.roadmap_ids.empty())
+      // look for non-default roadmap id
+      if (req.planner_id != ROADMAP_DEFAULT && req.planner_id != group_roadmap)
+      {
+        auto roadmap_search = group_config.roadmap_ids.find(req.planner_id);
+        if (roadmap_search != group_config.roadmap_ids.end())
+          group_roadmap = *roadmap_search;
+      }
+      // if default roadmap is not specified, use the first in the list
+      else if (group_roadmap.empty() && !group_config.roadmap_ids.empty())
         group_roadmap = *group_config.roadmap_ids.begin();
       auto roadmap_search = roadmaps_.find(group_roadmap);
       if (roadmap_search != roadmaps_.end())
@@ -271,6 +296,10 @@ public:
         ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << req.group_name);
       }
     }
+    else
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Group '" << req.group_name << "' is not configured with any roadmaps for RapidPlan");
+    }
     return context;
   }
 
@@ -281,8 +310,10 @@ private:
   RTRPlannerInterfacePtr planner_interface_;
 
   // group and roadmap configurations
+  std::vector<std::string> group_names_;
   std::map<std::string, GroupConfig> group_configs_;
   std::map<std::string, RoadmapSpecification> roadmaps_;
+
 };
 }  // namespace rtr_moveit
 
