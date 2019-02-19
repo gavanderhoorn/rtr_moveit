@@ -45,7 +45,7 @@
 #include <gtest/gtest.h>
 
 // package dependencies
-#include <rtr_moveit/rtr_conversions.h>
+#include <rtr_moveit/occupancy_handler.h>
 #include <rtr_moveit/rtr_datatypes.h>
 
 // planning scene conversion
@@ -84,11 +84,14 @@ TEST(TestSuite, convertPlanningScene)
   volume.voxel_dimension = 0.1;
 
   // convert planning scene object to voxels
-  std::vector<rtr::Voxel> voxels;
-  rtr_moveit::planningSceneToRtrCollisionVoxels(scene, volume, voxels);
+  rtr_moveit::OccupancyHandler occupancy_handler;
+  occupancy_handler.setVolumeRegion(volume);
+  rtr_moveit::OccupancyData occupancy;
+  occupancy_handler.fromPlanningScene(scene, occupancy);
 
   // voxels should be empty
-  EXPECT_TRUE(voxels.empty()) << "Created " << voxels.size() << " occupancy voxels for empty planning scene!";
+  EXPECT_TRUE(occupancy.voxels.empty()) << "Created " << occupancy.voxels.size()
+                                        << " occupancy voxels for empty planning scene!";
 
   // create collision object
   moveit_msgs::CollisionObject obj;
@@ -108,35 +111,39 @@ TEST(TestSuite, convertPlanningScene)
   scene->processCollisionObjectMsg(obj);
 
   // There should be 1000 occupancy voxels (of 1000)
-  voxels.clear();
-  rtr_moveit::planningSceneToRtrCollisionVoxels(scene, volume, voxels);
-  EXPECT_TRUE(voxels.size() == 1000) << "Created " << voxels.size() << " occupancy voxels even though there should be "
-                                                                       "1000.";
+  occupancy.voxels.clear();
+  occupancy_handler.fromPlanningScene(scene, occupancy);
+  EXPECT_TRUE(occupancy.voxels.size() == 1000) << "Created " << occupancy.voxels.size()
+                                               << " occupancy voxels even though there should be 1000.";
 
   // shift volume so only half of it is occluded
   volume.center.x += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_X];
-  voxels.clear();
-  rtr_moveit::planningSceneToRtrCollisionVoxels(scene, volume, voxels);
-  EXPECT_TRUE(voxels.size() == 500) << "Created " << voxels.size() << " occupancy voxels even though there should be "
-                                                                      "500.";
+  occupancy_handler.setVolumeRegion(volume);
+  occupancy.voxels.clear();
+  occupancy_handler.fromPlanningScene(scene, occupancy);
+  EXPECT_TRUE(occupancy.voxels.size() == 500) << "Created " << occupancy.voxels.size()
+                                              << " occupancy voxels even though there should be 500";
 
   // shift volume so only a quarter of it is occluded
   volume.center.y += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_Y];
-  voxels.clear();
-  rtr_moveit::planningSceneToRtrCollisionVoxels(scene, volume, voxels);
-  EXPECT_TRUE(voxels.size() == 250) << "Created " << voxels.size() << " occupancy voxels even though there should be "
-                                                                      "250.";
+  occupancy_handler.setVolumeRegion(volume);
+  occupancy.voxels.clear();
+  occupancy_handler.fromPlanningScene(scene, occupancy);
+  EXPECT_TRUE(occupancy.voxels.size() == 250) << "Created " << occupancy.voxels.size()
+                                              << " occupancy voxels even though there should be 250";
 
   // shift volume so only an eight of it is occluded
   volume.center.z += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_Z];
-  voxels.clear();
-  rtr_moveit::planningSceneToRtrCollisionVoxels(scene, volume, voxels);
-  EXPECT_TRUE(voxels.size() == 125) << "Created " << voxels.size() << " occupancy voxels even though there should be "
-                                                                      "125.";
+  occupancy_handler.setVolumeRegion(volume);
+  occupancy.voxels.clear();
+  occupancy_handler.fromPlanningScene(scene, occupancy);
+  EXPECT_TRUE(occupancy.voxels.size() == 125) << "Created " << occupancy.voxels.size()
+                                              << " occupancy voxels even though there should be 125";
 }
 
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "rtr_conversions_test");
   return RUN_ALL_TESTS();
 }

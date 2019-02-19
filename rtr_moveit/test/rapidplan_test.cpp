@@ -62,7 +62,8 @@ TEST(TestSuite, testPlannerInterface)
   // planner setup
   rtr_moveit::RTRPlannerInterface planner_(nh);
   double timeout = 5;  // seconds
-  std::vector<rtr::Voxel> occupancy_dummy;
+  rtr_moveit::OccupancyData occupancy_dummy;
+  occupancy_dummy.type = rtr_moveit::OccupancyData::Type::VOXELS;
   std::vector<std::vector<float>> solution;
   EXPECT_FALSE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, solution))
     << "Planning should not work without a roadmap";

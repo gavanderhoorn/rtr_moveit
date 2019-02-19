@@ -53,6 +53,16 @@
 namespace rtr_moveit
 {
 const std::string LOGNAME = "occupancy_handler";
+OccupancyHandler::OccupancyHandler()
+  : nh_("")
+{
+}
+
+OccupancyHandler::OccupancyHandler(const ros::NodeHandle& nh)
+  : nh_(nh)
+{
+}
+
 OccupancyHandler::OccupancyHandler(const ros::NodeHandle& nh, const std::string& pcl_topic)
   : nh_(nh), pcl_topic_(pcl_topic)
 {

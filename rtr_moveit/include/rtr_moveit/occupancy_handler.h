@@ -57,6 +57,14 @@ namespace rtr_moveit
 class OccupancyHandler
 {
 public:
+  /* @brief Constructor */
+  OccupancyHandler();
+
+  /* @brief Constructor
+   * @param nh - The node handle
+   */
+  OccupancyHandler(const ros::NodeHandle& nh);
+
   /* @brief Constructor
    * @param nh - The node handle
    * @param pcl_topic - The pcl topic for point cloud data queries
