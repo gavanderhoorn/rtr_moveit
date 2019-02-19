@@ -51,7 +51,7 @@
 // rtr_moveit
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
-#include <rtr_moveit/roadmap_util.h>
+#include <rtr_moveit/roadmap_search.h>
 
 namespace rtr_moveit
 {

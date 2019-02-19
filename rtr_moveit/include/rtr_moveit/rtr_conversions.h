@@ -79,7 +79,7 @@ inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path
   for (const std::vector<float>& joint_config : path)
   {
     robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
-    for (std::size_t i = 0; i < joint_names.size(); i++)
+    for (std::size_t i = 0; i < joint_names.size(); ++i)
       robot_state->setJointPositions(joint_names[i], { (double)joint_config[i] });
     trajectory.addSuffixWayPoint(robot_state, 0.1);
   }
@@ -138,13 +138,13 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
   //                          * Use octree search, since boxes can have variable sizes
   // TODO(henningkayser): adjust grid to odd volume dimensions
   // TODO(henningkayser): Do we need extra Box padding here?
-  for (uint16_t x = 0; x < x_voxels; x++)
+  for (uint16_t x = 0; x < x_voxels; ++x)
   {
     world.getWorld()->moveObject(box_id, x_step);
-    for (uint16_t y = 0; y < y_voxels; y++)
+    for (uint16_t y = 0; y < y_voxels; ++y)
     {
       world.getWorld()->moveObject(box_id, y_step);
-      for (uint16_t z = 0; z < z_voxels; z++)
+      for (uint16_t z = 0; z < z_voxels; ++z)
       {
         world.getWorld()->moveObject(box_id, z_step);
         planning_scene->getCollisionWorld()->checkWorldCollision(request, result, world);

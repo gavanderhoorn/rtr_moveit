@@ -58,7 +58,7 @@
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
-#include <rtr_moveit/roadmap_util.h>
+#include <rtr_moveit/roadmap_search.h>
 
 namespace rtr_moveit
 {
@@ -304,7 +304,7 @@ bool RTRPlanningContext::initStartState(rtr::Config& start_config)
   {
     std::size_t num_joints = request_.start_state.joint_state.position.size();
     for (const std::string& joint_name : joint_model_names_)
-      for (std::size_t i = 0; i < num_joints; i++)
+      for (std::size_t i = 0; i < num_joints; ++i)
         if (joint_name == request_.start_state.joint_state.name[i])
           start_config.push_back(request_.start_state.joint_state.position[i]);
     if (start_config.size() != joint_model_names_.size())

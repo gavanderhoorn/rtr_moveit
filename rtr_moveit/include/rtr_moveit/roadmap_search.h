@@ -36,8 +36,8 @@
  * Desc: Helper functions for searching and sorting roadmap data
  */
 
-#ifndef RTR_MOVEIT_ROADMAP_UTIL_H
-#define RTR_MOVEIT_ROADMAP_UTIL_H
+#ifndef RTR_MOVEIT_ROADMAP_SEARCH_H
+#define RTR_MOVEIT_ROADMAP_SEARCH_H
 
 #include <string>
 #include <vector>
@@ -55,7 +55,7 @@ namespace
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
   float distance = 0.0;
-  for (unsigned int i = 0; i < first.size(); i++)
+  for (unsigned int i = 0; i < first.size(); ++i)
     distance += std::abs(first[i] - second[i]);
   return distance;
 }
@@ -67,7 +67,7 @@ float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 float getPositionDistance(const rtr::ToolPose& first, const rtr::ToolPose& second)
 {
   float distance = 0.0;
-  for (unsigned int i = 0; i < 3; i++)
+  for (unsigned int i = 0; i < 3; ++i)
     distance += std::pow(first[i] - second[i], 2);
   return std::sqrt(distance);
 }
@@ -118,7 +118,7 @@ void findClosest(const T& item, const std::vector<T>& items,
   if (!items.empty() && max_results != 0 && distance_threshold > 0.0)
   {
     // iterate items
-    for (unsigned int item_id = 0; item_id < items.size(); item_id++)
+    for (unsigned int item_id = 0; item_id < items.size(); ++item_id)
     {
       float distance = getDistance<T>(item, items[item_id]);
       int insert_position = 0;
@@ -240,4 +240,4 @@ unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rt
 }  // namespace
 }  // namespace rtr_moveit
 
-#endif  // RTR_MOVEIT_ROADMAP_UTIL_H
+#endif  // RTR_MOVEIT_ROADMAP_SEARCH_H
