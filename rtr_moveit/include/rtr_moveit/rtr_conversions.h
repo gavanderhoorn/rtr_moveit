@@ -69,7 +69,6 @@ namespace rtr_moveit
 {
 namespace
 {
-// TODO(henningkayser): use std::vector<rtr::Config> for path once new header files are available
 inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path,
                                      const robot_state::RobotState& reference_state,
                                      const std::vector<std::string>& joint_names,
@@ -90,7 +89,7 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
                                               const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions
-  // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
+  // TODO(RTR-57): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
   double voxel_dimension = volume.voxel_dimension;
   double x_length = volume.dimensions.size[0];
@@ -133,11 +132,11 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
 
   // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
   // NOTE: This implementation is a prototype and will be replaced by more efficient methods as described below
-  // TODO(henningkayser): More efficient implementations:
+  // TODO(RTR-57): More efficient implementations:
   //                          * Iterate over collision objects and only sample local bounding boxes
   //                          * Use octree search, since boxes can have variable sizes
-  // TODO(henningkayser): adjust grid to odd volume dimensions
-  // TODO(henningkayser): Do we need extra Box padding here?
+  // TODO(RTR-57): adjust grid to odd volume dimensions
+  // TODO(RTR-57): Do we need extra Box padding here?
   for (uint16_t x = 0; x < x_voxels; ++x)
   {
     world.getWorld()->moveObject(box_id, x_step);
@@ -151,7 +150,7 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
         if (result.collision)
         {
           voxels.push_back(rtr::Voxel(x, y, z));
-          result.clear();  // TODO(henningkayser): Is this really necessary?
+          result.clear();  // TODO(RTR-57): Is this really necessary?
         }
       }
       // move object back to z start

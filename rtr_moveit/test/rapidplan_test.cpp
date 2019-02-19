@@ -89,7 +89,7 @@ TEST(TestSuite, testPlannerInterface)
   ASSERT_FALSE(solution.empty()) << "Solution path is empty";
   EXPECT_TRUE(new_start.size() == solution[0].size()) << "Joint values don't match to start state";
 
-  //TODO(henningkayser): add TRANSFORM goal test
+  //TODO(RTR-34): add TRANSFORM goal test
 
   // test state search
   EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[start_id], roadmap_states) == start_id);

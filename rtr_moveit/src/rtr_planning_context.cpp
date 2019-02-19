@@ -69,7 +69,7 @@ RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const 
   planner_interface_(planner_interface),
   roadmap_(roadmap_spec)
 {
-  // TODO(henningkayser): load volume from roadmap config file
+  // TODO(RTR-54): load volume from roadmap config file
   roadmap_.volume.base_frame = "base_link";
   roadmap_.volume.center.x = 0.1;
   roadmap_.volume.center.y = 0.1;
@@ -99,7 +99,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // prepare collision scene
-  // TODO(henningkayser): Implement generic collision type for PCL and PlanningScene conversion
+  // TODO(RTR-46): Implement generic collision type for PCL and PlanningScene conversion
   std::vector<rtr::Voxel> collision_voxels;
   planningSceneToRtrCollisionVoxels(planning_scene_, roadmap_.volume, collision_voxels);
 
@@ -138,7 +138,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     }
     solution_path.clear();
   }
-  // TODO(henningkayser): connect start and goal state if necessary
+  // TODO(RTR-47): connect start and goal state if necessary
   planning_time = (ros::Time::now() - start_time).toSec();
   return result;
 }
@@ -163,7 +163,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
   // load defult planner parameters
-  // TODO(henningkayser): support overloading defaults
+  // TODO(RTR-56): support overloading defaults
   ros::NodeHandle nh("~");
   std::size_t error = 0;
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_position_distance", allowed_position_distance_);
@@ -282,7 +282,7 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
     std::transform(std::begin(joint_positions), std::end(joint_positions), std::begin(sample_config),
                    [](double d) -> float {return float(d);});
     // search for goal state candidates within allowed joint distance
-    //TODO(henningkayser): (pre-)filter by allowed position distance
+    //TODO(RTR-7): (pre-)filter by allowed position distance
     findClosestConfigs(sample_config, roadmap_configs_, goal.state_ids, distances, max_goal_states_,
                        allowed_joint_distance_);
     if (!goal.state_ids.empty())

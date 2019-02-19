@@ -126,8 +126,8 @@ public:
     }
     // Note: Further checks require inspecting the roadmaps, volume region and attached collision objects.
     // This does not belong into the planner manager and should be provided by the planning context.
-    // TODO(henningkayser): check if we have a valid roadmap for this request
-    // TODO(henningkayser): check if we can handle the goal constraints
+    // TODO(RTR-50): check if we have a valid roadmap for this request
+    // TODO(RTR-49): check if we can handle the goal constraints
 
     return true;
   }
@@ -253,7 +253,7 @@ public:
     if (group_config_search != group_configs_.end())
     {
       // look for roadmap
-      // TODO(henningkayser): look for suitable roadmap if we have multiple
+      // TODO(RTR-31): look for suitable roadmap if we have multiple
       GroupConfig group_config = group_config_search->second;
       std::string group_roadmap = group_config.default_roadmap_id;
       if (group_roadmap.empty() && !group_config.roadmap_ids.empty())

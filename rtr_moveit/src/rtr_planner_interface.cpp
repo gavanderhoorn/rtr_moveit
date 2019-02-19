@@ -70,7 +70,7 @@ RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 
 RTRPlannerInterface::~RTRPlannerInterface()
 {
-  // TODO(henningkayser) implement destructor
+  // TODO(RTR-52) implement destructor
 }
 
 bool RTRPlannerInterface::initialize()
@@ -124,7 +124,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
   std::deque<unsigned int> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
   bool success = solve(roadmap_spec, start_config, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
-  // TODO(henningkayser): verify waypoints and states? This should already be done in the PathPlanner.
+  // TODO(RTR-53): verify waypoints and states? This should already be done in the PathPlanner.
   if (success)
   {
     // fill solution path
@@ -186,8 +186,8 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     int result = -1;
     roadmap_states = planner_.GetConfigs();
     // Find closest existing configuration in roadmap that can be connected to the start state
-    // TODO(henningkayser): add start state tolerance parameter
-    // TODO(henningkayser): discuss API - we should search for this more efficiently and outside of the mutex scope
+    // TODO(RTR-47): add start state tolerance parameter
+    // TODO(RTR-47): discuss API - we should search for this more efficiently and outside of the mutex scope
     int start_id = findClosestConfigId(start_config, roadmap_states);
     if (goal.type == RapidPlanGoal::Type::TRANSFORM)
     {
@@ -200,8 +200,8 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     }
     else if (goal.type == RapidPlanGoal::Type::JOINT_STATE)
     {
-      // TODO(henningkayser): add goal state tolerance
-      // TODO(henningkayser): discuss API - we should search for this more efficiently and outside of the mutex scope
+      // TODO(RTR-34): add goal state tolerance
+      // TODO(RTR-34): discuss API - we should search for this more efficiently and outside of the mutex scope
       // look for goal states and handle like STATE_IDS goal type
       std::vector<unsigned int> goal_state_ids = { findClosestConfigId(goal.joint_state, roadmap_states) };
       result = planner_.FindPath(start_id, goal_state_ids, collisions, waypoints, edges, timeout);
@@ -293,12 +293,12 @@ bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& r
     }
 
     // save new roadmap if it is new
-    // TODO(henningkayser): Only store *.og file paths, others will be deprecated with the next API
+    // TODO(RTR-51): Only store *.og file paths, others will be deprecated with the next API
     if (roadmaps_.find(roadmap_spec.roadmap_id) == roadmaps_.end())
       roadmaps_[roadmap_spec.roadmap_id] = roadmap_spec;
     loaded_roadmap_ = roadmap_spec.roadmap_id;
 
-    // set edge cost as simple joint distance - TODO(henningkayser): use weighted distance?
+    // set edge cost as simple joint distance - TODO(RTR-55): use weighted distance?
     planner_.SetEdgeCost(&getConfigDistance);
   }
   return true;
