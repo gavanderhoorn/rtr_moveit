@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: Implementation of the RTRPlannerManager
+ * Desc: Implementation of the RapidPlan planner plugin that can be loaded with the planning pipeline
  */
 
 // C++
