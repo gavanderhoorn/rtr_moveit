@@ -55,7 +55,7 @@ namespace
 float getConfigDistance(const rtr::Config& first, const rtr::Config& second)
 {
   float distance = 0.0;
-  for (unsigned int i = 0; i < first.size(); ++i)
+  for (std::size_t i = 0; i < first.size(); ++i)
     distance += std::abs(first[i] - second[i]);
   return distance;
 }
@@ -118,7 +118,7 @@ void findClosest(const T& item, const std::vector<T>& items,
   if (!items.empty() && max_results != 0 && distance_threshold > 0.0)
   {
     // iterate items
-    for (unsigned int item_id = 0; item_id < items.size(); ++item_id)
+    for (std::size_t item_id = 0; item_id < items.size(); ++item_id)
     {
       float distance = getDistance<T>(item, items[item_id]);
       int insert_position = 0;
