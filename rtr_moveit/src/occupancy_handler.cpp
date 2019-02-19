@@ -41,6 +41,7 @@
 
 // Eigen
 #include <Eigen/Geometry>
+#include <eigen_conversions/eigen_msg.h>
 
 // collision checks
 #include <moveit/collision_detection/world.h>
@@ -114,9 +115,9 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   // TODO(RTR-57): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
   double voxel_dimension = volume_region_.voxel_dimension;
-  double x_length = volume_region_.dimensions.size[0];
-  double y_length = volume_region_.dimensions.size[1];
-  double z_length = volume_region_.dimensions.size[2];
+  float x_length = volume_region_.dimensions[0];
+  float y_length = volume_region_.dimensions[1];
+  float z_length = volume_region_.dimensions[2];
 
   int x_voxels = x_length / voxel_dimension;
   int y_voxels = y_length / voxel_dimension;
@@ -124,18 +125,19 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
 
   // Compute transform: world->volume
   // world_to_volume points at the corner of the volume with minimal x,y,z
+  // we use auto to support Affine3d and Isometry3d (kinetic + melodic)
   auto world_to_base(planning_scene->getFrameTransform(volume_region_.base_frame));
-  Eigen::Translation3d base_to_volume(volume_region_.center.x - 0.5 * x_length,
-                                      volume_region_.center.y - 0.5 * y_length,
-                                      volume_region_.center.z - 0.5 * z_length);
+  auto base_to_volume = world_to_base;
+  tf::poseMsgToEigen(volume_region_.center_pose, base_to_volume);
   auto world_to_volume = world_to_base * base_to_volume;
 
   // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
   shapes::Box box(voxel_dimension, voxel_dimension, voxel_dimension);
-  double voxel_offset = -0.5 * voxel_dimension;
-  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box),
-      world_to_volume * Eigen::Translation3d(voxel_offset, voxel_offset, voxel_offset));
+  Eigen::Translation3d box_start_position(-(voxel_dimension + x_length)/2,
+                                          -(voxel_dimension + y_length)/2,
+                                          -(voxel_dimension + z_length)/2);
+  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box), world_to_volume * box_start_position);
 
   // collision request and result
   collision_detection::CollisionRequest request;
@@ -146,13 +148,15 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   occupancy_data.voxels.resize(0);
 
   // x/y/z step transforms
-  Eigen::Affine3d x_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(voxel_dimension, 0, 0));
-  Eigen::Affine3d y_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, voxel_dimension, 0));
-  Eigen::Affine3d z_step(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, voxel_dimension));
+  auto identity = world_to_volume;
+  identity.setIdentity();
+  auto x_step(identity * Eigen::Translation3d(voxel_dimension, 0, 0));
+  auto y_step(identity * Eigen::Translation3d(0, voxel_dimension, 0));
+  auto z_step(identity * Eigen::Translation3d(0, 0, voxel_dimension));
 
   // x/y reset transforms
-  Eigen::Affine3d y_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, -y_voxels * voxel_dimension, 0));
-  Eigen::Affine3d z_reset(Eigen::Affine3d::Identity() * Eigen::Translation3d(0, 0, -z_voxels * voxel_dimension));
+  auto y_reset(identity * Eigen::Translation3d(0, -y_voxels * voxel_dimension, 0));
+  auto z_reset(identity * Eigen::Translation3d(0, 0, -z_voxels * voxel_dimension));
 
   // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
   // NOTE: This implementation is a prototype and will be replaced by more efficient methods as described below

@@ -282,7 +282,9 @@ public:
       }
       // if default roadmap is not specified, use the first in the list
       else if (group_roadmap.empty() && !group_config.roadmap_ids.empty())
+      {
         group_roadmap = *group_config.roadmap_ids.begin();
+      }
       auto roadmap_search = roadmaps_.find(group_roadmap);
       if (roadmap_search != roadmaps_.end())
       {

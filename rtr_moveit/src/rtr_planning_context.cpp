@@ -47,6 +47,7 @@
 // ROS parameters
 #include <ros/ros.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
+#include <tf/transform_datatypes.h>
 
 // MoveIt! constraints
 #include <moveit/constraint_samplers/constraint_sampler.h>
@@ -73,14 +74,6 @@ RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const 
   planner_interface_(planner_interface),
   roadmap_(roadmap_spec)
 {
-  // TODO(RTR-54): load volume from roadmap config file
-  roadmap_.volume.base_frame = "base_link";
-  roadmap_.volume.center.x = 0.1;
-  roadmap_.volume.center.y = 0.1;
-  roadmap_.volume.center.z = 0.1;
-  roadmap_.volume.dimensions.size[0] = 1.0;
-  roadmap_.volume.dimensions.size[1] = 1.0;
-  roadmap_.volume.dimensions.size[2] = 1.0;
 }
 
 moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotTrajectoryPtr& trajectory,
@@ -103,9 +96,9 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // prepare collision scene
+  OccupancyHandler occupancy_handler;
+  occupancy_handler.setVolumeRegion(roadmap_.volume);
   OccupancyData occupancy_data;
-  ros::NodeHandle nh;
-  OccupancyHandler occupancy_handler(nh, "");
   occupancy_handler.fromPlanningScene(planning_scene_, occupancy_data);
 
   // initialize start state
@@ -258,8 +251,8 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   if (!planner_interface_->isReady() && !planner_interface_->initialize())
     return;
 
+  // read roadmap data from .og file
   og_file_.reset(new rtr::OGFileReader(roadmap_.og_file));
-
   if (!og_file_->IsValid())
   {
     ROS_ERROR_STREAM_NAMED(LOGNAME, "Roadmap file invalid " << roadmap_.og_file << "'");
@@ -286,6 +279,19 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
     ROS_ERROR_NAMED(LOGNAME, "Unable to load state poses from roadmap file");
     return;
   }
+
+  // load voxel region
+  rtr::ToolPose volume_center_pose;
+  if (!og_file_->GetVoxelRegion(roadmap_.volume.base_frame, volume_center_pose, roadmap_.volume.dimensions))
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Unable to load voxel region from roadmap file");
+    return;
+  }
+  roadmap_.volume.center_pose.position.x = volume_center_pose[0];
+  roadmap_.volume.center_pose.position.y = volume_center_pose[1];
+  roadmap_.volume.center_pose.position.z = volume_center_pose[2];
+  roadmap_.volume.center_pose.orientation =
+    tf::createQuaternionMsgFromRollPitchYaw(volume_center_pose[3], volume_center_pose[4], volume_center_pose[5]);
 
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
