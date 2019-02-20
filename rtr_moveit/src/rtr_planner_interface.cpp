@@ -101,6 +101,22 @@ bool RTRPlannerInterface::initialize()
       ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
       return false;
     }
+
+    // clear hardware if  there are still roadmaps stored
+    if (roadmap_indices_.empty())
+    {
+      uint16_t num_roadmaps;
+      if (!rapidplan_interface_.NumRoadmaps(num_roadmaps))
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Reading hardware state failed.");
+        return false;
+      }
+      if (unsigned(num_roadmaps) > 0 && !rapidplan_interface_.ClearRoadmaps())
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Clearing hardware storage failed.");
+        return false;
+      }
+    }
   }
 
   ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
