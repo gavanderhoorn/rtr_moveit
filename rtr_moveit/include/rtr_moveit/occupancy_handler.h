@@ -71,6 +71,11 @@ public:
    */
   OccupancyHandler(const ros::NodeHandle& nh, const std::string& pcl_topic);
 
+  /* Enables/disables Marker publishers for result visualization
+   * @param enabled - condition if visualization should be enabled
+   */
+  void setVisualizationEnabled(bool enabled);
+
   /* @brief Set the volume region for all occupancy data queries
    * @param  roadmap_volume  - The new region
    */
@@ -94,9 +99,21 @@ public:
    */
   bool fromPlanningScene(const planning_scene::PlanningSceneConstPtr& planning_scene,
                          OccupancyData& occupancy_data);
-
 private:
+  /* Visualizes the origin of the region volume and voxels positions
+   * @param  frame_id  - the reference frame of the roadmap volume pose
+   * @param  volume_pose - the origin pose of the region volume
+   * @param  voxel_points - the position vector of all occupancy voxels
+   * @param  voxel_dimensions - the voxel dimensions along the coordinate axes
+   */
+  void visualizeVoxels(const std::string& frame_id,  const geometry_msgs::Pose& volume_origin_pose,
+                       const geometry_msgs::Pose& volume_center_pose, const std::array<float, 3> volume_dimensions,
+                       const std::vector<geometry_msgs::Point>& voxel_points,
+                       const std::array<float, 3> voxel_dimensions);
 
+  /* Callback function for point cloud subscribers
+   * @param  cloud_pcl2 - the pointer of a new sensed point cloud
+   */
   void pclCallback(const pcl::PCLPointCloud2ConstPtr& cloud_pcl2);
 
   ros::NodeHandle nh_;
@@ -108,6 +125,10 @@ private:
   std::mutex pcl_mtx_;
   std::condition_variable pcl_condition_;
   bool pcl_ready_ = false;
+
+  // visualization
+  bool visualize_occupancy_data_ = false;
+  ros::Publisher volume_pub_;
 };
 }  // namespace rtr_moveit
 

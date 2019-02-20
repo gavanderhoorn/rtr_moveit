@@ -174,6 +174,7 @@ private:
   double allowed_joint_distance_;
   double allowed_position_distance_;
   int max_goal_states_;
+  bool visualization_enabled_;
 
   ros::Time terminate_plan_time_;
 };

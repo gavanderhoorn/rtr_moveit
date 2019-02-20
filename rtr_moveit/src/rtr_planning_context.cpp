@@ -96,9 +96,10 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // prepare collision scene
-  OccupancyHandler occupancy_handler;
-  occupancy_handler.setVolumeRegion(roadmap_.volume);
   OccupancyData occupancy_data;
+  OccupancyHandler occupancy_handler;
+  occupancy_handler.setVisualizationEnabled(visualization_enabled_);
+  occupancy_handler.setVolumeRegion(roadmap_.volume);
   occupancy_handler.fromPlanningScene(planning_scene_, occupancy_data);
 
   // initialize start state
@@ -230,6 +231,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_joint_distance", allowed_joint_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_goal_states", max_goal_states_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_waypoint_distance", max_waypoint_distance_);
+  nh.param("planner_config/visualization_enabled", visualization_enabled_, false);
   if (error)
   {
     ROS_ERROR_NAMED(LOGNAME, "Planning Context could not be configured due to missing params");
@@ -280,19 +282,22 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
     return;
   }
 
-  // load voxel region
+  // load occupancy region volume
   rtr::ToolPose volume_center_pose;
-  if (!og_file_->GetVoxelRegion(roadmap_.volume.base_frame, volume_center_pose, roadmap_.volume.dimensions))
+  if (!og_file_->GetVoxelRegion(roadmap_.volume.pose.header.frame_id, volume_center_pose, roadmap_.volume.dimension))
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to load voxel region from roadmap file");
     return;
   }
-  roadmap_.volume.center_pose.position.x = volume_center_pose[0];
-  roadmap_.volume.center_pose.position.y = volume_center_pose[1];
-  roadmap_.volume.center_pose.position.z = volume_center_pose[2];
-  roadmap_.volume.center_pose.orientation =
+  roadmap_.volume.pose.pose.position.x = volume_center_pose[0];
+  roadmap_.volume.pose.pose.position.y = volume_center_pose[1];
+  roadmap_.volume.pose.pose.position.z = volume_center_pose[2];
+  roadmap_.volume.pose.pose.orientation =
     tf::createQuaternionMsgFromRollPitchYaw(volume_center_pose[3], volume_center_pose[4], volume_center_pose[5]);
+  roadmap_.volume.pose.header.frame_id = "world"; // NOTE: GetVoxelRegion returns an empty frame - we fix this here
+  roadmap_.volume.voxel_resolution = {64, 64, 64}; // NOTE: these are the hardcoded/fixed values from the rtr-toolkit
 
+  // done
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   configured_ = true;
 }

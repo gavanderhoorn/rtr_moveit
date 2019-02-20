@@ -42,7 +42,7 @@
 #include <set>
 #include <string>
 
-#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometric_shapes/shapes.h>
 
 #include <pcl/point_cloud.h>
@@ -54,10 +54,12 @@ namespace rtr_moveit
 {
 struct RoadmapVolume
 {
-  std::string base_frame;
-  geometry_msgs::Pose center_pose;
-  std::array<float, 3> dimensions;
-  double voxel_dimension;
+  // the pose of the origin corner of th volume region (0,0,0)
+  geometry_msgs::PoseStamped pose;
+  // region volume dimensions along X/Y/Z axes
+  std::array<float, 3> dimension;
+  // voxel resolution along X/Y/Z axes
+  std::array<int, 3> voxel_resolution;
 };
 
 struct RoadmapSpecification
