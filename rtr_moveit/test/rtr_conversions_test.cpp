@@ -77,11 +77,14 @@ TEST(TestSuite, convertPlanningScene)
 
   // specify volume region
   rtr_moveit::RoadmapVolume volume;
-  volume.base_frame = scene->getPlanningFrame();
-  volume.dimensions.size[0] = 1.0;
-  volume.dimensions.size[1] = 1.0;
-  volume.dimensions.size[2] = 1.0;
-  volume.voxel_dimension = 0.1;
+  volume.pose.header.frame_id = scene->getPlanningFrame();
+  volume.pose.pose.orientation.w = 1.0;
+  volume.dimension[0] = 1.0;
+  volume.dimension[1] = 1.0;
+  volume.dimension[2] = 1.0;
+  volume.voxel_resolution[0] = 10;
+  volume.voxel_resolution[1] = 10;
+  volume.voxel_resolution[2] = 10;
 
   // convert planning scene object to voxels
   rtr_moveit::OccupancyHandler occupancy_handler;
@@ -105,6 +108,9 @@ TEST(TestSuite, convertPlanningScene)
   obj.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 1.0;
   obj.primitive_poses.resize(1);
   obj.primitive_poses[0].orientation.w = 1.0;
+  obj.primitive_poses[0].position.x += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_X];
+  obj.primitive_poses[0].position.y += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Y];
+  obj.primitive_poses[0].position.z += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Z];
   obj.operation = moveit_msgs::CollisionObject::ADD;
 
   // add object to planning scene
@@ -117,7 +123,7 @@ TEST(TestSuite, convertPlanningScene)
                                                << " occupancy voxels even though there should be 1000.";
 
   // shift volume so only half of it is occluded
-  volume.center.x += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_X];
+  volume.pose.pose.position.x += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_X];
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
@@ -125,7 +131,7 @@ TEST(TestSuite, convertPlanningScene)
                                               << " occupancy voxels even though there should be 500";
 
   // shift volume so only a quarter of it is occluded
-  volume.center.y += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_Y];
+  volume.pose.pose.position.y += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Y];
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
@@ -133,7 +139,7 @@ TEST(TestSuite, convertPlanningScene)
                                               << " occupancy voxels even though there should be 250";
 
   // shift volume so only an eight of it is occluded
-  volume.center.z += 0.501 * volume.dimensions.size[shape_msgs::SolidPrimitive::BOX_Z];
+  volume.pose.pose.position.z += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Z];
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
