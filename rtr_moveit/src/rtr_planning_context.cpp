@@ -380,10 +380,11 @@ bool RTRPlanningContext::initStartState(unsigned int& start_state_id)
   }
 
   // search for start state candidate in roadmap
-  start_state_id = findClosestConfigId(start_config, roadmap_configs_, allowed_joint_distance_);
-  if (start_state_id == -1)
+  int result_id = findClosestConfigId(start_config, roadmap_configs_, allowed_joint_distance_);
+  if (result_id < 0)
     ROS_ERROR_NAMED(LOGNAME, "Unable to find a start state candidate in the roadmap within the allowed joint distance");
-  return start_state_id >= 0;
+  start_state_id = result_id;
+  return result_id >= 0;
 }
 
 void RTRPlanningContext::clear()
