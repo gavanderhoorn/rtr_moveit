@@ -85,7 +85,7 @@ TEST(TestSuite, testPlannerInterface)
 
   ASSERT_FALSE(solution.empty()) << "Solution path is empty";
 
-  //TODO(henningkayser): add TRANSFORM goal test
+  //TODO(RTR-58): add TRANSFORM goal test
 
   // test state search
   EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[start_id], roadmap_states) == start_id);
