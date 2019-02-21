@@ -38,6 +38,8 @@
 
 #include <rtr_moveit/occupancy_handler.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/transforms.h>
+#include <chrono>
 
 // Eigen
 #include <Eigen/Geometry>
@@ -136,33 +138,58 @@ void OccupancyHandler::setPointCloudTopic(const std::string& pcl_topic)
   pcl_topic_ = pcl_topic;
 }
 
-bool OccupancyHandler::fromPCL(OccupancyData& occupancy_data)
+bool OccupancyHandler::fromPointCloud(const std::string& pcl_topic, OccupancyData& occupancy_data, int timeout)
 {
   // if point cloud is older than 100ms, get a new one
+  //TODO(RTR-59): Use planning time to determine timeouts
   if (!shared_pcl_ptr_ ||  (ros::Time::now().toNSec() * 1000 - shared_pcl_ptr_->header.stamp > 100000))
   {
     std::unique_lock<std::mutex> lock(pcl_mtx_);
-    ros::Subscriber pcl_sub = nh_.subscribe(pcl_topic_, 1, &OccupancyHandler::pclCallback, this);
-    pcl_condition_.wait(lock, [&](){return pcl_ready_;});
+    ros::Subscriber pcl_sub = nh_.subscribe(pcl_topic, 1, &OccupancyHandler::pclCallback, this);
     pcl_ready_ = false;
+    bool pcl_success = pcl_condition_.wait_for(lock, std::chrono::milliseconds(timeout), [&](){return pcl_ready_;});
     pcl_sub.shutdown();
-  }
+    if (!pcl_success)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Waiting for point cloud data timed out");
+      return false;
+    }
+    if (shared_pcl_ptr_)
+    {
+      tf::TransformListener tf_listener;
+      const std::string& cloud_frame = shared_pcl_ptr_->header.frame_id;
+      const std::string& volume_frame = volume_region_.pose.header.frame_id;
+      if (!tf_listener.canTransform(volume_frame, cloud_frame, ros::Time::now()) &&
+          !tf_listener.waitForTransform(volume_frame, cloud_frame, ros::Time::now(), ros::Duration(1.0)))
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Unable to transform point cloud into volume region frame");
+        return false;
+      }
+      tf::StampedTransform cloud_to_volume;
+      tf_listener.lookupTransform(volume_frame, cloud_frame, ros::Time::now(), cloud_to_volume);
+      pcl_ros::transformPointCloud(*shared_pcl_ptr_, *shared_pcl_ptr_, cloud_to_volume);
+    }
 
-  // get result
-  occupancy_data.type = OccupancyData::Type::POINT_CLOUD;
-  occupancy_data.point_cloud = shared_pcl_ptr_;
+    // get result
+    occupancy_data.type = OccupancyData::Type::POINT_CLOUD;
+    occupancy_data.point_cloud = shared_pcl_ptr_;
+  }
   return occupancy_data.point_cloud != NULL;
 }
 
 void OccupancyHandler::pclCallback(const pcl::PCLPointCloud2ConstPtr& cloud_pcl2)
 {
   std::unique_lock<std::mutex> lock(pcl_mtx_);
-  if (!shared_pcl_ptr_)
-    shared_pcl_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::fromPCLPointCloud2(*cloud_pcl2, *shared_pcl_ptr_);
-  pcl_ready_ = true;
-  lock.unlock();
-  pcl_condition_.notify_one();
+  // prevent overwriting shared_pcl_ptr_ in case subscriber wasn't shut down fast enough
+  if (!pcl_ready_)
+  {
+    if (!shared_pcl_ptr_)
+      shared_pcl_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::fromPCLPointCloud2(*cloud_pcl2, *shared_pcl_ptr_);
+    pcl_ready_ = true;
+    lock.unlock();
+    pcl_condition_.notify_one();
+  }
 }
 
 bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneConstPtr& planning_scene,

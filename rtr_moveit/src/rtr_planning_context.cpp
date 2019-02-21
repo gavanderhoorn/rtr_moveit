@@ -96,11 +96,17 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // prepare collision scene
+  bool occupancy_success;
   OccupancyData occupancy_data;
   OccupancyHandler occupancy_handler;
   occupancy_handler.setVisualizationEnabled(visualization_enabled_);
   occupancy_handler.setVolumeRegion(roadmap_.volume);
-  occupancy_handler.fromPlanningScene(planning_scene_, occupancy_data);
+  if (occupancy_source_ == "POINT_CLOUD")
+    occupancy_success = occupancy_handler.fromPointCloud(pcl_topic_, occupancy_data);
+  else
+    occupancy_success = occupancy_handler.fromPlanningScene(planning_scene_, occupancy_data);
+  if (!occupancy_success)
+    return result;
 
   // initialize start state
   unsigned int start_state_id;
@@ -231,12 +237,30 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_joint_distance", allowed_joint_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_goal_states", max_goal_states_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_waypoint_distance", max_waypoint_distance_);
-  nh.param("planner_config/visualization_enabled", visualization_enabled_, false);
   if (error)
   {
     ROS_ERROR_NAMED(LOGNAME, "Planning Context could not be configured due to missing params");
     return;
   }
+
+  // read occupancy parameters
+  nh.param("planner_config/occupancy_source", occupancy_source_, std::string("PLANNING_SCENE"));
+  nh.param("planner_config/visualization_enabled", visualization_enabled_, false);
+  if (occupancy_source_ != "PLANNING_SCENE")
+  {
+    if (occupancy_source_ != "POINT_CLOUD")
+    {
+      ROS_WARN_STREAM_NAMED(LOGNAME, "Occupancy source is set to unknown type '" << occupancy_source_
+                                  << "'. Proceeding with default 'PLANNING_SCENE'.");
+      occupancy_source_ = "PLANNING_SCENE";
+    }
+    else if (!nh.getParam("planner_config/pcl_topic", pcl_topic_))
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Occupancy source 'POINT_CLOUD' cannot be configured without parameter 'pcl_topic'");
+      return;
+    }
+  }
+
 
   // planning scene should be set
   if (!planning_scene_)

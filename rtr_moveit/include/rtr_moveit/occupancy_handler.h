@@ -86,11 +86,13 @@ public:
    */
   void setPointCloudTopic(const std::string& pcl_topic);
 
-  /* @brief Initializes occupancy_data with an updated point cloud
+  /* @brief Initializes occupancy_data with a new point cloud
+   * @param  point_cloud - the point cloud topic to use
    * @param  occupancy_data  - the result data including the point cloud
+   * @param  timeout - message timeout in milliseconds
    * @return true on success
    */
-  bool fromPCL(OccupancyData& occupancy_data);
+  bool fromPointCloud(const std::string& point_cloud, OccupancyData& occupancy_data, int timeout=1000);
 
   /* @brief Generates a list of occupancy voxels given a planning scene
    * @param  planning_scene  - the planning scene

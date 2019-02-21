@@ -176,6 +176,9 @@ private:
   int max_goal_states_;
   bool visualization_enabled_;
 
+  std::string occupancy_source_;
+  std::string pcl_topic_;
+
   ros::Time terminate_plan_time_;
 };
 }  // namespace rtr_moveit
