@@ -70,7 +70,7 @@ TEST(TestSuite, testPlannerInterface)
 
   // add roadmap file
   roadmap.roadmap_id = "test_roadmap_2";
-  roadmap.files.occupancy = ros::package::getPath("rtr_moveit") + "/test/test_roadmap.og";
+  roadmap.og_file = ros::package::getPath("rtr_moveit") + "/test/test_roadmap.og";
 
   // this should work now
   std::vector<std::vector<float>> roadmap_states;

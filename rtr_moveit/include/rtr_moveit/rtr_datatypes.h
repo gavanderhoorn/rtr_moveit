@@ -55,20 +55,10 @@ struct RoadmapVolume
   double voxel_dimension;
 };
 
-struct RoadmapFiles
-{
-  // TODO(RTR-54): Filetypes will change in the new API
-  std::string occupancy;
-  std::string volume;
-  std::string edges;
-  std::string configs;
-  std::string transforms;
-};
-
 struct RoadmapSpecification
 {
   std::string roadmap_id;
-  RoadmapFiles files;
+  std::string og_file;
   RoadmapVolume volume;
 };
 

@@ -252,7 +252,7 @@ public:
       // add new roadmap spec
       RoadmapSpecification spec;
       spec.roadmap_id = roadmap_id;
-      spec.files.occupancy = roadmap_file.c_str();
+      spec.og_file = roadmap_file.c_str();
       roadmaps_[roadmap_id] = spec;
       ROS_INFO_STREAM_NAMED(LOGNAME, "Found roadmap '" << roadmap_id << "' at: " << roadmap_file);
     }

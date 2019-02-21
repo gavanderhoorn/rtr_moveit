@@ -285,11 +285,11 @@ bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& r
   // check if roadmap is already loaded in the PathPlanner
   if (roadmap_spec.roadmap_id != loaded_roadmap_)
   {
-    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << roadmap_spec.files.occupancy);
-    if (!planner_.LoadRoadmap(roadmap_spec.files.occupancy))
+    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << roadmap_spec.og_file);
+    if (!planner_.LoadRoadmap(roadmap_spec.og_file))
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_spec.roadmap_id << "' to PathPlanner");
-      std::cout << roadmap_spec.files.occupancy << std::endl;
+      std::cout << roadmap_spec.og_file << std::endl;
       return false;
     }
 
@@ -316,7 +316,7 @@ bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spe
     if (rapidplan_interface_enabled_)
     {
       // write roadmap and retrieve new roadmap index
-      if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.files.occupancy, roadmap_index))
+      if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.og_file, roadmap_index))
       {
         ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_spec.roadmap_id << "' to RapidPlan MPA");
         return false;

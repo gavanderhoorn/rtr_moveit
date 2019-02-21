@@ -241,11 +241,11 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   if (!planner_interface_->isReady() && !planner_interface_->initialize())
     return;
 
-  og_file_.reset(new rtr::OGFileReader(roadmap_.files.occupancy));
+  og_file_.reset(new rtr::OGFileReader(roadmap_.og_file));
 
   if (!og_file_->IsValid())
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Roadmap file invalid " << roadmap_.files.occupancy << "'");
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "Roadmap file invalid " << roadmap_.og_file << "'");
     return;
   }
 
