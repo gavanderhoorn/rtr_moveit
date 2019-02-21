@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2019, PickNik LLC
+ *  Copyright (c) 2018, PickNik LLC
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,6 @@ TEST(TestSuite, testPlannerInterface)
   // valid start
   const unsigned int start_id = 0;
   const unsigned int goal_id = 10;
-  const std::vector<float> start = {0.0, -1.27, 1.52, 4.47, -1.57, 0.0};  // origin state
 
   // valid goal
   rtr_moveit::RapidPlanGoal goal;
@@ -65,7 +64,7 @@ TEST(TestSuite, testPlannerInterface)
   double timeout = 5;  // seconds
   std::vector<rtr::Voxel> occupancy_dummy;
   std::vector<std::vector<float>> solution;
-  EXPECT_FALSE(planner_.solve(roadmap, start, goal, occupancy_dummy, timeout, solution))
+  EXPECT_FALSE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, solution))
     << "Planning should not work without a roadmap";
   solution.clear();
 
@@ -76,20 +75,17 @@ TEST(TestSuite, testPlannerInterface)
   // this should work now
   std::vector<std::vector<float>> roadmap_states;
   std::deque<unsigned int> waypoints, edges;
-  ASSERT_TRUE(planner_.solve(roadmap, start, goal, occupancy_dummy, timeout, roadmap_states, waypoints, edges))
+  ASSERT_TRUE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, roadmap_states, waypoints, edges))
     << "Planning with STATE_IDS goal should have been successful";
 
   // then it should work backwards as well
-  std::vector<float> new_start = roadmap_states[goal.state_ids[0]];
-  goal.type = rtr_moveit::RapidPlanGoal::Type::JOINT_STATE;
-  goal.joint_state = start;
-  ASSERT_TRUE(planner_.solve(roadmap, start, goal, occupancy_dummy, timeout, solution))
+  goal.state_ids = {start_id};
+  ASSERT_TRUE(planner_.solve(roadmap, goal_id, goal, occupancy_dummy, timeout, solution))
     << "Planning with JOINT_STATE goal should have been successful";
 
   ASSERT_FALSE(solution.empty()) << "Solution path is empty";
-  EXPECT_TRUE(new_start.size() == solution[0].size()) << "Joint values don't match to start state";
 
-  //TODO(RTR-34): add TRANSFORM goal test
+  //TODO(henningkayser): add TRANSFORM goal test
 
   // test state search
   EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[start_id], roadmap_states) == start_id);
