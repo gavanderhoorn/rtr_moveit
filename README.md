@@ -1,6 +1,6 @@
 # rtr_moveit
 
-Description: A MoveIt! planner interface for RapidPlan by [Realtime Robotics](http://rtr.ai/).
+Description: A MoveIt! planning plugin for [Realtime Robotics](http://rtr.ai/)'s RapidPlan.
 
 <img src="https://picknik.ai/images/logo.jpg" width="100">
 
@@ -40,7 +40,7 @@ These instructions assume you are running on Ubuntu 16.04:
         cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
         sudo bash rtr_0.1.2.deb.run
         rm rtr_0.1.2.deb.run rtr_0.1.2.deb.run.crypt
-        
+
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/
@@ -67,7 +67,7 @@ These instructions assume you are running on Ubuntu 16.04:
 
 ## Run
 
-See the [rtr_moveit tutorial](https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_moveit_tutorial.rst) on how to configure and run this plugin. 
+See the [rtr_moveit tutorial](https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_moveit_tutorial.rst) on how to configure and run this plugin.
 
 ## Developers: Quick update code repositories
 
@@ -80,12 +80,6 @@ To make sure you have the latest repos:
     wstool merge rtr_moveit/rtr_moveit.rosinstall
     wstool update
     rosdep install --from-paths . --ignore-src --rosdistro kinetic
-
-## Code API
-
-> Note: this package has not been released yet
-
-See [the Doxygen documentation](http://docs.ros.org/kinetic/api/rtr_moveit/html/anotated.html)
 
 ## Testing and Linting
 
