@@ -198,10 +198,6 @@ bool RTRPlanningContext::connectWaypointToTrajectory(const robot_trajectory::Rob
     connecting_state.interpolate(*waypoint_state, step * step_fraction, intermediate_state);
     if (planning_scene_->isStateColliding(intermediate_state))
       return false;
-    //if (connect_to_front)
-    //  trajectory->addPrefixWayPoint(intermediate_state, 0.0);
-    //else
-    //  trajectory->addSuffixWayPoint(intermediate_state, 0.0);
   }
   if (connect_to_front)
     trajectory->addPrefixWayPoint(intermediate_state, 0.0);
