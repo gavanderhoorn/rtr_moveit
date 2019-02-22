@@ -72,52 +72,7 @@ These instructions assume you are running on Ubuntu 16.04:
 
 ## Run
 
-TODO(henningkayser@picknik.ai): Explain how to load and run this plugin
-
-### Roadmap Configuration
-
-A roadmap is represented by a single *.og file and a name identifier.
-The roadmap file path is composed by the package path, the directory in the package and the file name.
-Default package and directory can be set by `default/roadmaps_package` and `default/roadmaps_directory`.
-The default file name is the name of the roadmap.
-
-Each group should have a default roadmap name specified under `group/default_roadmap`.
-Further roadmaps can be added as a list under `group/roadmaps`.
-
-Roadmaps where the files should not be resolved from the defaults can be configured under `roadmaps`.
-Here each roadmap can have specific entries for `filename,` `package` or `directory` that overwrite the defaults.
-The same pattern can be used when adding additional parameters later.
-This is also useful for creating aliases of the same roadmap with different configurations.
-
-A valid `rtr_planning.yaml` config has the following pattern:
-  
-```
-roadmaps:
-  roadmap_1:
-    filename: another_filename
-    directory: directory_B
-  roadmap_2:
-    package: package_B
-    
-default:
-    roadmaps_package: package_A
-    roadmaps_directory: directory_A
-
-group:
-  default_roadmap: roadmap_1
-  roadmaps:
-    - roadmap_2
-    - roadmap_3
-```
-
-roadmap_1: <package_A>/directory_B/another_filename.og  
-roadmap_2: <package_B>/directory_A/roadmap_2.og  
-roadmap_3: <package_A>/directory_A/roadmap_3.og  
-
-The parameter lookup iterates over all roadmap names of each group and loads all roadmap files that can be found.
-This makes the use of either `default` or `roadmaps` optional.
-Groups without any valid roadmaps are not available for planning.
-If no group with a valid roadmap was found the plugin initialization fails with an error.
+See the [rtr_moveit tutorial](https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_moveit_tutorial.rst) on how to configure and run this plugin. 
 
 ## Developers: Quick update code repositories
 
