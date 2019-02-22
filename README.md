@@ -22,12 +22,6 @@ The interface hides all of this and only provides functions for initialization, 
 
 ## Install
 
-### Ubuntu Debian
-
-> Note: this package has not been released yet
-
-    sudo apt-get install ros-kinetic-rtr_moveit
-
 ### Build from Source
 
 These instructions assume you are running on Ubuntu 16.04:
@@ -46,23 +40,24 @@ These instructions assume you are running on Ubuntu 16.04:
         cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
         sudo bash rtr_0.1.2.deb.run
         rm rtr_0.1.2.deb.run rtr_0.1.2.deb.run.crypt
-
+        
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/
-        mkdir -p $CATKIN_WS
-        cd $CATKIN_WS
+        mkdir -p $CATKIN_WS/src
+        cd $CATKIN_WS/src
 
 1. Download the required repositories and install any dependencies:
 
         git clone git@github.com:PickNikRobotics/rtr_moveit.git
-        wstool init src
-        wstool merge -t src rtr_moveit/rtr_moveit.rosinstall
-        wstool update -t src
-        rosdep install --from-paths src --ignore-src --rosdistro kinetic
+        wstool init .
+        wstool merge rtr_moveit/rtr_moveit.rosinstall
+        wstool update
+        rosdep install --from-paths . --ignore-src --rosdistro kinetic
 
 1. Configure and build the workspace:
 
+        cd $CATKIN_WS
         catkin config --extend /opt/ros/kinetic --cmake-args -DCMAKE_BUILD_TYPE=Release
         catkin build
 
