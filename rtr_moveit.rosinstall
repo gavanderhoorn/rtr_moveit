@@ -1,16 +1,1 @@
 # Used with wstool, users can download and source of all packages in this.
-
-- git:
-    uri: https://github.com/ros-planning/moveit.git
-    local-name: upstream/moveit
-    version: kinetic-devel
-
-- git:
-    uri: https://github.com/ros-planning/moveit_msgs.git
-    local-name: upstream/moveit_msgs
-    version: kinetic-devel
-
-- git:
-    uri: https://github.com/ros-perception/perception_pcl.git
-    local-name: upstream/perception_pcl
-    version: kinetic-devel
