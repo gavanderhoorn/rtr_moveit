@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2018, PickNik LLC
+ *  Copyright (c) 2019, PickNik LLC
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -61,12 +61,12 @@ public:
   OccupancyHandler();
 
   /* @brief Constructor
-   * @param nh - The node handle
+   * @param nh - The ROS node
    */
   OccupancyHandler(const ros::NodeHandle& nh);
 
   /* @brief Constructor
-   * @param nh - The node handle
+   * @param nh - The ROS node
    * @param pcl_topic - The pcl topic for point cloud data queries
    */
   OccupancyHandler(const ros::NodeHandle& nh, const std::string& pcl_topic);

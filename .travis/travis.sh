@@ -155,6 +155,7 @@ travis_run rosdep update
 # Install RapidPlan dependencies
 travis_run apt-get -qq install tar mcrypt python-pip
 travis_run pip install gdown
+# Currently the debians are hosted on PickNik's Google Drive account, RTR may want to move this in the future
 travis_run gdown https://drive.google.com/uc?id=1X6suaBlgbfmOzGF2sXNSuyOLPkid484R
 cat rtr_0.1.2-133.tar.gz.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2-133.tar.gz
 travis_run tar xfz rtr_0.1.2-133.tar.gz

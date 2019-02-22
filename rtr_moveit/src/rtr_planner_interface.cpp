@@ -58,7 +58,7 @@ static const std::string LOGNAME = "rtr_planner_interface";
 
 RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
-  // Check if  RapidPlan hardware should be used for collision checking
+  // Check if RapidPlan hardware should be used for collision checking
   rapidplan_interface_enabled_ = nh_.param("planner_config/rapidplan_interface_enabled", false);
   if (!rapidplan_interface_enabled_)
     ROS_WARN_NAMED(LOGNAME, "RapidPlanInterface is disabled - plans will be computed without collision checks");
