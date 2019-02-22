@@ -33,6 +33,7 @@ These instructions assume you are running on Ubuntu 16.04:
 1. Install RapidPlan dependencies:
 
 > Note: RapidPlan is not released yet. All dependencies are installed from [this](https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh) encrypted binary shell script.
+
         sudo apt-get install mcrypt python-pip
         pip install --user gdown
         gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
