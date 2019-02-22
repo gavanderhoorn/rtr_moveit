@@ -42,6 +42,8 @@ These instructions assume you are running on Ubuntu 16.04:
         sudo bash rtr_0.1.2-133/rtr_0.1.2-133.deb.run
         sudo cp rtr_0.1.2-133/RapidPlanDataTypes.hpp /opt/ros/kinetic/include/rtr-api/
 
+> Note: you may need to uninstall older versions of RapidPlan, which you can do via ``sudo apt remove rtr* ros-kinetic-rtr*``
+
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/
