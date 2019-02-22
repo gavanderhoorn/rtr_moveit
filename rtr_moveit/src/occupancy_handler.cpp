@@ -228,7 +228,8 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   // occupancy box id and dimensions
   // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
-  world.getWorld()->addToObject(box_id, std::make_shared<const shapes::Box>(box), world_to_volume * box_start_position);
+  const collision_detection::WorldPtr& world_geometry = world.getWorld();
+  world_geometry->addToObject(box_id, std::make_shared<const shapes::Box>(box), world_to_volume * box_start_position);
 
   // clear scene boxes vector
   occupancy_data.type = OccupancyData::Type::VOXELS;
@@ -255,13 +256,13 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   collision_detection::CollisionResult result;
   for (uint16_t x = 0; x < x_voxels; ++x)
   {
-    world.getWorld()->moveObject(box_id, x_step);
+    world_geometry->moveObject(box_id, x_step);
     for (uint16_t y = 0; y < y_voxels; ++y)
     {
-      world.getWorld()->moveObject(box_id, y_step);
+      world_geometry->moveObject(box_id, y_step);
       for (uint16_t z = 0; z < z_voxels; ++z)
       {
-        world.getWorld()->moveObject(box_id, z_step);
+        world_geometry->moveObject(box_id, z_step);
         planning_scene->getCollisionWorld()->checkWorldCollision(request, result, world);
         if (result.collision)
         {
@@ -270,10 +271,10 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
         }
       }
       // move object back to z start
-      world.getWorld()->moveObject(box_id, z_reset);
+      world_geometry->moveObject(box_id, z_reset);
     }
     // move object back to y start
-    world.getWorld()->moveObject(box_id, y_reset);
+    world_geometry->moveObject(box_id, y_reset);
   }
   // visualize
   if (visualize_occupancy_data_)
