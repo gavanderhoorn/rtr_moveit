@@ -92,15 +92,15 @@ public:
    * @param  timeout - message timeout in milliseconds
    * @return true on success
    */
-  bool fromPointCloud(const std::string& point_cloud, OccupancyData& occupancy_data, int timeout=1000);
+  bool fromPointCloud(const std::string& point_cloud, OccupancyData& occupancy_data, int timeout = 1000);
 
   /* @brief Generates a list of occupancy voxels given a planning scene
    * @param  planning_scene  - the planning scene
    * @param  occupancy_data  - the result data including the voxels
    * @return true on success
    */
-  bool fromPlanningScene(const planning_scene::PlanningSceneConstPtr& planning_scene,
-                         OccupancyData& occupancy_data);
+  bool fromPlanningScene(const planning_scene::PlanningSceneConstPtr& planning_scene, OccupancyData& occupancy_data);
+
 private:
   /* Visualizes the origin of the region volume and voxels positions
    * @param  frame_id  - the reference frame of the roadmap volume pose
@@ -108,7 +108,7 @@ private:
    * @param  voxel_points - the position vector of all occupancy voxels
    * @param  voxel_dimensions - the voxel dimensions along the coordinate axes
    */
-  void visualizeVoxels(const std::string& frame_id,  const geometry_msgs::Pose& volume_origin_pose,
+  void visualizeVoxels(const std::string& frame_id, const geometry_msgs::Pose& volume_origin_pose,
                        const geometry_msgs::Pose& volume_center_pose, const std::array<float, 3> volume_dimensions,
                        const std::vector<geometry_msgs::Point>& voxel_points,
                        const std::array<float, 3> voxel_dimensions);

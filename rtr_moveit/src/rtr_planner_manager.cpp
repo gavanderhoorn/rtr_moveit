@@ -118,11 +118,11 @@ public:
     bool has_valid_constraint = false;
     for (const moveit_msgs::Constraints& goal_constraint : req.goal_constraints)
     {
-      if(goal_constraint.visibility_constraints.empty())
+      if (goal_constraint.visibility_constraints.empty())
       {
-        has_valid_constraint = !( goal_constraint.joint_constraints.empty()
-                               && goal_constraint.position_constraints.empty()
-                               && goal_constraint.orientation_constraints.empty());
+        has_valid_constraint =
+            !(goal_constraint.joint_constraints.empty() && goal_constraint.position_constraints.empty() &&
+              goal_constraint.orientation_constraints.empty());
         if (has_valid_constraint)
           break;
       }
@@ -131,7 +131,7 @@ public:
     if (!has_valid_constraint)
     {
       ROS_ERROR_STREAM_NAMED(LOGNAME, "Planning request does not contain supported goal constraints - "
-                                   << "Supported are only joint/position/orientation goals");
+                                          << "Supported are only joint/position/orientation goals");
       return false;
     }
     // Note: Further checks require inspecting the roadmaps, volume region and attached collision objects.
@@ -300,7 +300,8 @@ public:
     }
     else
     {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Group '" << req.group_name << "' is not configured with any roadmaps for RapidPlan");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Group '" << req.group_name << "' is not configured with any roadmaps for "
+                                                                     "RapidPlan");
     }
     return context;
   }
@@ -315,7 +316,6 @@ private:
   std::vector<std::string> group_names_;
   std::map<std::string, GroupConfig> group_configs_;
   std::map<std::string, RoadmapSpecification> roadmaps_;
-
 };
 }  // namespace rtr_moveit
 

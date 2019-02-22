@@ -42,7 +42,7 @@
 #include <string>
 #include <vector>
 
-#include <rtr-api/RapidPlanDataTypes.hpp> // contains rtr::Config, rtr::ToolPose
+#include <rtr-api/RapidPlanDataTypes.hpp>  // contains rtr::Config, rtr::ToolPose
 
 namespace rtr_moveit
 {
@@ -109,9 +109,9 @@ float getDistance<rtr::ToolPose>(const rtr::ToolPose& first, const rtr::ToolPose
 * @param distance_threshold - The allowed distance of result items from item
 */
 template <class T>
-void findClosest(const T& item, const std::vector<T>& items,
-                  std::vector<unsigned int>& result_ids, std::vector<float>& result_distances,
-                  const unsigned int max_results = 1, const float& distance_threshold = FLT_MAX)
+void findClosest(const T& item, const std::vector<T>& items, std::vector<unsigned int>& result_ids,
+                 std::vector<float>& result_distances, const unsigned int max_results = 1,
+                 const float& distance_threshold = FLT_MAX)
 {
   result_ids.clear();
   result_distances.clear();
@@ -122,7 +122,7 @@ void findClosest(const T& item, const std::vector<T>& items,
     {
       float distance = getDistance<T>(item, items[item_id]);
       int insert_position = 0;
-      bool add_to_results = result_ids.empty(); // if empty, we don't need to compare
+      bool add_to_results = result_ids.empty();  // if empty, we don't need to compare
       if (!add_to_results)
       {
         for (insert_position = result_distances.size(); insert_position > 0; insert_position--)
@@ -222,7 +222,6 @@ void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config
   std::vector<float> result_distances;
   findClosestConfigs(config, configs, result_ids, result_distances, configs.size(), distance_threshold);
 }
-
 
 /** Find and return the index of the element in configs with the minimal distance to a given joint state config
  * @param config - The joint state config to compare

@@ -70,9 +70,9 @@ namespace rtr_moveit
 static const std::string LOGNAME = "rtr_planning_context";
 RTRPlanningContext::RTRPlanningContext(const std::string& planning_group, const RoadmapSpecification& roadmap_spec,
                                        const RTRPlannerInterfacePtr& planner_interface)
-  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group),
-  planner_interface_(planner_interface),
-  roadmap_(roadmap_spec)
+  : planning_interface::PlanningContext(planning_group + "[" + roadmap_spec.roadmap_id + "]", planning_group)
+  , planner_interface_(planner_interface)
+  , roadmap_(roadmap_spec)
 {
 }
 
@@ -180,7 +180,7 @@ bool RTRPlanningContext::solve(planning_interface::MotionPlanDetailedResponse& r
   res.processing_time_.resize(res.processing_time_.size() + 1);
   res.error_code_ = solve(res.trajectory_.back(), res.processing_time_.back());
   res.description_.push_back("plan");
-  //TODO(henningkayser): add more detailed descriptions for planning steps
+  // TODO(henningkayser): add more detailed descriptions for planning steps
   return res.error_code_.val == res.error_code_.SUCCESS;
 }
 
@@ -233,7 +233,8 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   // TODO(RTR-56): support overloading defaults
   ros::NodeHandle nh("~");
   std::size_t error = 0;
-  error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_position_distance", allowed_position_distance_);
+  error +=
+      !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_position_distance", allowed_position_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/allowed_joint_distance", allowed_joint_distance_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_goal_states", max_goal_states_);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "planner_config/max_waypoint_distance", max_waypoint_distance_);
@@ -250,8 +251,8 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   {
     if (occupancy_source_ != "POINT_CLOUD")
     {
-      ROS_WARN_STREAM_NAMED(LOGNAME, "Occupancy source is set to unknown type '" << occupancy_source_
-                                  << "'. Proceeding with default 'PLANNING_SCENE'.");
+      ROS_WARN_STREAM_NAMED(LOGNAME, "Occupancy source is set to unknown type '"
+                                         << occupancy_source_ << "'. Proceeding with default 'PLANNING_SCENE'.");
       occupancy_source_ = "PLANNING_SCENE";
     }
     else if (!nh.getParam("planner_config/pcl_topic", pcl_topic_))
@@ -260,7 +261,6 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
       return;
     }
   }
-
 
   // planning scene should be set
   if (!planning_scene_)
@@ -317,9 +317,9 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
   roadmap_.volume.pose.pose.position.y = volume_center_pose[1];
   roadmap_.volume.pose.pose.position.z = volume_center_pose[2];
   roadmap_.volume.pose.pose.orientation =
-    tf::createQuaternionMsgFromRollPitchYaw(volume_center_pose[3], volume_center_pose[4], volume_center_pose[5]);
-  roadmap_.volume.pose.header.frame_id = "world"; // NOTE: GetVoxelRegion returns an empty frame - we fix this here
-  roadmap_.volume.voxel_resolution = {64, 64, 64}; // NOTE: these are the hardcoded/fixed values from the rtr-toolkit
+      tf::createQuaternionMsgFromRollPitchYaw(volume_center_pose[3], volume_center_pose[4], volume_center_pose[5]);
+  roadmap_.volume.pose.header.frame_id = "world";     // NOTE: GetVoxelRegion returns an empty frame - we fix this here
+  roadmap_.volume.voxel_resolution = { 64, 64, 64 };  // NOTE: these are the hardcoded/fixed values from the rtr-toolkit
 
   // done
   error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
@@ -327,7 +327,7 @@ void RTRPlanningContext::configure(moveit_msgs::MoveItErrorCodes& error_code)
 }
 
 bool RTRPlanningContext::initRapidPlanGoals(const std::vector<moveit_msgs::Constraints>& goal_constraints,
-                                           std::vector<RapidPlanGoal>& goals)
+                                            std::vector<RapidPlanGoal>& goals)
 {
   bool success = false;
   for (const moveit_msgs::Constraints& goal_constraint : goal_constraints)
@@ -390,9 +390,9 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
     sample_state.copyJointGroupPositions(group_, joint_positions);
     // copy joint values to rtr::Config
     std::transform(std::begin(joint_positions), std::end(joint_positions), std::begin(sample_config),
-                   [](double d) -> float {return float(d);});
+                   [](double d) -> float { return float(d); });
     // search for goal state candidates within allowed joint distance
-    //TODO(RTR-7): (pre-)filter by allowed position distance
+    // TODO(RTR-7): (pre-)filter by allowed position distance
     findClosestConfigs(sample_config, roadmap_configs_, goal.state_ids, distances, max_goal_states_,
                        allowed_joint_distance_);
     if (!goal.state_ids.empty())
@@ -429,7 +429,8 @@ bool RTRPlanningContext::initStartState(unsigned int& start_state_id)
   else
   {
     // if start state in request is not populated, take the current state of the planning scene
-    ROS_WARN_NAMED(LOGNAME, "Start state in MotionPlanRquest is not populated - using current state from planning scene.");
+    ROS_WARN_NAMED(LOGNAME, "Start state in MotionPlanRquest is not populated - using current state from planning "
+                            "scene.");
     std::vector<double> joint_positions;
     start_state_->copyJointGroupPositions(group_, joint_positions);
     for (const double& joint_position : joint_positions)
@@ -446,7 +447,7 @@ bool RTRPlanningContext::initStartState(unsigned int& start_state_id)
 
 void RTRPlanningContext::clear()
 {
-  //TODO(henningkayser): implement and support reusing planning contexts
+  // TODO(henningkayser): implement and support reusing planning contexts
 }
 
 bool RTRPlanningContext::terminate()

@@ -93,8 +93,8 @@ TEST(TestSuite, convertPlanningScene)
   occupancy_handler.fromPlanningScene(scene, occupancy);
 
   // voxels should be empty
-  EXPECT_TRUE(occupancy.voxels.empty()) << "Created " << occupancy.voxels.size()
-                                        << " occupancy voxels for empty planning scene!";
+  EXPECT_TRUE(occupancy.voxels.empty()) << "Created " << occupancy.voxels.size() << " occupancy voxels for empty "
+                                                                                    "planning scene!";
 
   // create collision object
   moveit_msgs::CollisionObject obj;
@@ -127,24 +127,24 @@ TEST(TestSuite, convertPlanningScene)
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
-  EXPECT_TRUE(occupancy.voxels.size() == 500) << "Created " << occupancy.voxels.size()
-                                              << " occupancy voxels even though there should be 500";
+  EXPECT_TRUE(occupancy.voxels.size() == 500) << "Created " << occupancy.voxels.size() << " occupancy voxels even "
+                                                                                          "though there should be 500";
 
   // shift volume so only a quarter of it is occluded
   volume.pose.pose.position.y += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Y];
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
-  EXPECT_TRUE(occupancy.voxels.size() == 250) << "Created " << occupancy.voxels.size()
-                                              << " occupancy voxels even though there should be 250";
+  EXPECT_TRUE(occupancy.voxels.size() == 250) << "Created " << occupancy.voxels.size() << " occupancy voxels even "
+                                                                                          "though there should be 250";
 
   // shift volume so only an eight of it is occluded
   volume.pose.pose.position.z += 0.501 * volume.dimension[shape_msgs::SolidPrimitive::BOX_Z];
   occupancy_handler.setVolumeRegion(volume);
   occupancy.voxels.clear();
   occupancy_handler.fromPlanningScene(scene, occupancy);
-  EXPECT_TRUE(occupancy.voxels.size() == 125) << "Created " << occupancy.voxels.size()
-                                              << " occupancy voxels even though there should be 125";
+  EXPECT_TRUE(occupancy.voxels.size() == 125) << "Created " << occupancy.voxels.size() << " occupancy voxels even "
+                                                                                          "though there should be 125";
 }
 
 int main(int argc, char** argv)

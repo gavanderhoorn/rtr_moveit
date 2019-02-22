@@ -98,14 +98,12 @@ public:
 
   /** \brief Run planning attempt and generate a solution path */
   bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
-             const OccupancyData& occupancy_data, const double& timeout,
-             std::vector<rtr::Config>& solution_path);
+             const OccupancyData& occupancy_data, const double& timeout, std::vector<rtr::Config>& solution_path);
 
   /** \brief Run planning attempt and generate solution waypoints and edges */
   bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
-             const OccupancyData& occupancy_data, const double& timeout,
-             std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
-             std::deque<unsigned int>& edges);
+             const OccupancyData& occupancy_data, const double& timeout, std::vector<rtr::Config>& roadmap_states,
+             std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges);
 
   /** \brief Get the configs of the given roadmap */
   bool getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs);

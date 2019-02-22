@@ -59,13 +59,11 @@
 namespace rtr_moveit
 {
 const std::string LOGNAME = "occupancy_handler";
-OccupancyHandler::OccupancyHandler()
-  : nh_("")
+OccupancyHandler::OccupancyHandler() : nh_("")
 {
 }
 
-OccupancyHandler::OccupancyHandler(const ros::NodeHandle& nh)
-  : nh_(nh)
+OccupancyHandler::OccupancyHandler(const ros::NodeHandle& nh) : nh_(nh)
 {
 }
 
@@ -141,13 +139,13 @@ void OccupancyHandler::setPointCloudTopic(const std::string& pcl_topic)
 bool OccupancyHandler::fromPointCloud(const std::string& pcl_topic, OccupancyData& occupancy_data, int timeout)
 {
   // if point cloud is older than 100ms, get a new one
-  //TODO(RTR-59): Use planning time to determine timeouts
-  if (!shared_pcl_ptr_ ||  (ros::Time::now().toNSec() * 1000 - shared_pcl_ptr_->header.stamp > 100000))
+  // TODO(RTR-59): Use planning time to determine timeouts
+  if (!shared_pcl_ptr_ || (ros::Time::now().toNSec() * 1000 - shared_pcl_ptr_->header.stamp > 100000))
   {
     std::unique_lock<std::mutex> lock(pcl_mtx_);
     ros::Subscriber pcl_sub = nh_.subscribe(pcl_topic, 1, &OccupancyHandler::pclCallback, this);
     pcl_ready_ = false;
-    bool pcl_success = pcl_condition_.wait_for(lock, std::chrono::milliseconds(timeout), [&](){return pcl_ready_;});
+    bool pcl_success = pcl_condition_.wait_for(lock, std::chrono::milliseconds(timeout), [&]() { return pcl_ready_; });
     pcl_sub.shutdown();
     if (!pcl_success)
     {
@@ -221,9 +219,7 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   // create collision world and add voxel box shape one step outside the volume grid
   collision_detection::CollisionWorldFCL world;
   shapes::Box box(x_voxel_dimension, y_voxel_dimension, z_voxel_dimension);
-  Eigen::Translation3d box_start_position(-0.5 * x_voxel_dimension,
-                                          -0.5 * y_voxel_dimension,
-                                          -0.5 * z_voxel_dimension);
+  Eigen::Translation3d box_start_position(-0.5 * x_voxel_dimension, -0.5 * y_voxel_dimension, -0.5 * z_voxel_dimension);
 
   // occupancy box id and dimensions
   // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
@@ -280,17 +276,18 @@ bool OccupancyHandler::fromPlanningScene(const planning_scene::PlanningSceneCons
   if (visualize_occupancy_data_)
   {
     geometry_msgs::Pose volume_center_pose;
-    tf::poseEigenToMsg(world_to_volume * Eigen::Translation3d(x_length/2, y_length/2, z_length/2), volume_center_pose);
+    tf::poseEigenToMsg(world_to_volume * Eigen::Translation3d(x_length / 2, y_length / 2, z_length / 2),
+                       volume_center_pose);
     std::vector<geometry_msgs::Point> voxel_points(occupancy_data.voxels.size());
     for (std::size_t i = 0; i < voxel_points.size(); i++)
     {
-      voxel_points[i].x = occupancy_data.voxels[i].x*x_voxel_dimension;
-      voxel_points[i].y = occupancy_data.voxels[i].y*y_voxel_dimension;
-      voxel_points[i].z = occupancy_data.voxels[i].z*z_voxel_dimension;
+      voxel_points[i].x = occupancy_data.voxels[i].x * x_voxel_dimension;
+      voxel_points[i].y = occupancy_data.voxels[i].y * y_voxel_dimension;
+      voxel_points[i].z = occupancy_data.voxels[i].z * z_voxel_dimension;
     }
     visualizeVoxels(volume_region_.pose.header.frame_id, volume_region_.pose.pose, volume_center_pose,
-                    {x_length, y_length, z_length},  voxel_points,
-                    {x_voxel_dimension, y_voxel_dimension, z_voxel_dimension});
+                    { x_length, y_length, z_length }, voxel_points,
+                    { x_voxel_dimension, y_voxel_dimension, z_voxel_dimension });
   }
   return true;
 }

@@ -65,8 +65,8 @@ TEST(TestSuite, testPlannerInterface)
   rtr_moveit::OccupancyData occupancy_dummy;
   occupancy_dummy.type = rtr_moveit::OccupancyData::Type::VOXELS;
   std::vector<std::vector<float>> solution;
-  EXPECT_FALSE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, solution))
-    << "Planning should not work without a roadmap";
+  EXPECT_FALSE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, solution)) << "Planning should not "
+                                                                                               "work without a roadmap";
   solution.clear();
 
   // add roadmap file
@@ -77,16 +77,16 @@ TEST(TestSuite, testPlannerInterface)
   std::vector<std::vector<float>> roadmap_states;
   std::deque<unsigned int> waypoints, edges;
   ASSERT_TRUE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, roadmap_states, waypoints, edges))
-    << "Planning with STATE_IDS goal should have been successful";
+      << "Planning with STATE_IDS goal should have been successful";
 
   // then it should work backwards as well
-  goal.state_ids = {start_id};
+  goal.state_ids = { start_id };
   ASSERT_TRUE(planner_.solve(roadmap, goal_id, goal, occupancy_dummy, timeout, solution))
-    << "Planning with JOINT_STATE goal should have been successful";
+      << "Planning with JOINT_STATE goal should have been successful";
 
   ASSERT_FALSE(solution.empty()) << "Solution path is empty";
 
-  //TODO(RTR-58): add TRANSFORM goal test
+  // TODO(RTR-58): add TRANSFORM goal test
 
   // test state search
   EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[start_id], roadmap_states) == start_id);

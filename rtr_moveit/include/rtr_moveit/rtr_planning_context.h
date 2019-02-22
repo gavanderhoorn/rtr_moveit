@@ -141,8 +141,7 @@ private:
    * @param trajectory - returns the populated result trajectory
    */
   void processSolutionPath(const std::vector<rtr::Config>& solution_path,
-                           const robot_state::RobotState& reference_state,
-                           const std::vector<std::string>& joint_names,
+                           const robot_state::RobotState& reference_state, const std::vector<std::string>& joint_names,
                            robot_trajectory::RobotTrajectory& trajectory);
 
   /** Connect a waypoint state to a robot trajectory using interpolation and collision checks in the
@@ -153,8 +152,7 @@ private:
    * @return true on success, false if collisions have occured
    */
   bool connectWaypointToTrajectory(const robot_trajectory::RobotTrajectoryPtr& trajectory,
-                                   const robot_state::RobotStatePtr& waypoint_state,
-                                   bool connect_to_front=false);
+                                   const robot_state::RobotStatePtr& waypoint_state, bool connect_to_front = false);
 
   robot_state::RobotStatePtr start_state_;
   std::vector<robot_state::RobotStatePtr> goal_states_;

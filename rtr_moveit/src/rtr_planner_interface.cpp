@@ -63,7 +63,7 @@ RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
   if (!rapidplan_interface_enabled_)
     ROS_WARN_NAMED(LOGNAME, "RapidPlanInterface is disabled - plans will be computed without collision checks");
 
-  std::map<std::string, ros::console::levels::Level>  loggers;
+  std::map<std::string, ros::console::levels::Level> loggers;
   if (ros::console::get_loggers(loggers))
   {
     auto logger_level = loggers.find(ros::this_node::getNamespace());
@@ -137,8 +137,8 @@ bool RTRPlannerInterface::isReady() const
 }
 
 bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
-                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data,
-                                const double& timeout, std::vector<rtr::Config>& solution_path)
+                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data, const double& timeout,
+                                std::vector<rtr::Config>& solution_path)
 {
   std::deque<unsigned int> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
@@ -172,9 +172,9 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
 }
 
 bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
-                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data,
-                                const double& timeout, std::vector<rtr::Config>& roadmap_states,
-                                std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges)
+                                const RapidPlanGoal& goal, const OccupancyData& occupancy_data, const double& timeout,
+                                std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
+                                std::deque<unsigned int>& edges)
 {
   {  // SCOPED MUTEX LOCK
     // In solve() the RapidPlanInterface and PathPlanner are loaded with the same roadmap so that results from

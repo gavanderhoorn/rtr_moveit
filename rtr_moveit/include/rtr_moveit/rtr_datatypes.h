@@ -71,7 +71,12 @@ struct RoadmapSpecification
 
 struct OccupancyData
 {
-  enum Type { POINT_CLOUD, BOXES, VOXELS };
+  enum Type
+  {
+    POINT_CLOUD,
+    BOXES,
+    VOXELS
+  };
   Type type;
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr point_cloud;
   std::vector<rtr::Box> boxes;
