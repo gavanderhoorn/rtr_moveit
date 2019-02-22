@@ -153,4 +153,4 @@ The example above would resolve to the following roadmap paths:
   - roadmap_2: <package_B>/directory_A/roadmap_2.og
   - roadmap_3: <package_A>/directory_A/roadmap_3.og
 
-.. _this:  https://www.github.com/PickNikRobotics/rtr_moveit/master/rtr_moveit_tutorial/rtr_planning.yaml
+.. _this:  https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_planning.yaml
