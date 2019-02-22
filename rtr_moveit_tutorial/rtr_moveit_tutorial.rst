@@ -31,7 +31,7 @@ The waypoint distance that should be used for collision checking in the planning
 RapidPlan also supports solving for multiple goal states at the same time, the maximum number is defined by ``max_goal_states``.
 
 There are two supported types of occupancy data that can be used for collision checking using the MPA.
-By default the collision objects in the planning scene are converted into a Voxel grid that is supported by the RapidPlanInterface.
+By default the collision objects in the planning scene are converted into a Voxel grid that is supported by the *RapidPlan* interface.
 Alternatively, the plugin can subscribe to a point cloud topic and directly forward current sensor data which naturally is much more time efficient.
 Occupancy data type and point cloud topics are configured using the parameters ``occupancy_source`` and ``pcl_topic``.
 
