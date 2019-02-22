@@ -4,7 +4,7 @@ RapidPlan
 *RapidPlan* is a roadmap-based planning framework by `Realtime Robotics <https://rtr.ai/>`_ that allows high frequency collision checking and planning using a dedicated FPGA board, the *Motion Planning Accelerator (MPA)*.
 The MPA - initialized with a precomputed roadmap - can process point cloud sensor input or other occupancy data to compute all collisions with roadmap edges in parallel.
 Solving the planning problem is then a simple shortest path search in the residual roadmap graph.
-Depending on the roadmap density these steps can be computed with a frequency of up to 1000hz, making *RapidPlan* excel in online trajectory validation and replanning applications.
+Depending on the roadmap density these steps can be computed with a frequency of up to 1kHz, making *RapidPlan* excel in online trajectory validation and replanning applications.
 
 .. image:: dense_roadmap_cropped.png
    :width: 500pt
@@ -13,16 +13,17 @@ Getting Started
 ---------------
 
 1. Install the `RapidPlan` toolkit and generate roadmap files following the instructions on https://rtr.ai/support
-2. Install the ``rtr_moveit`` package:
-
-   ``apt install ros-kinetic-rtr_moveit``
-
+2. Install the ``rtr_moveit`` package following the instructions in the README_
 3. Modify_ the planning pipeline to use the RTRPlanner
-4. Configure_ planner and roadmap parameters
+4. Configure_ the planner and roadmap parameters
 
 The rtr_moveit plugin
 ---------------------
 The ``rtr_moveit`` plugin integrates the *RapidPlan* interfaces into the planning pipeline and supports common ``MotionPlanRequest`` messages.
+
+Goal Constraints
+^^^^^^^^^^^^^^^^
+
 Goal states can be defined as arbitrary combinations of Joint-, Position- and Orientation constraints.
 Since start and goal states are unlikely to be part of the roadmap the plugin attempts to solve for nearby state candidates and connect the endings afterwards.
 This is done by linear interpolation and collision checking using the planning scene in *MoveIt!*.
@@ -30,19 +31,26 @@ The allowed distance of start and goal state candidates is defined by the parame
 The waypoint distance that should be used for collision checking in the planning scene is defined by ``max_waypoint_distance``.
 RapidPlan also supports solving for multiple goal states at the same time, the maximum number is defined by ``max_goal_states``.
 
+Occupancy Data
+^^^^^^^^^^^^^^
+
 There are two supported types of occupancy data that can be used for collision checking using the MPA.
 By default the collision objects in the planning scene are converted into a Voxel grid that is supported by the *RapidPlan* interface.
 Alternatively, the plugin can subscribe to a point cloud topic and directly forward current sensor data which naturally is much more time efficient.
 Occupancy data type and point cloud topics are configured using the parameters ``occupancy_source`` and ``pcl_topic``.
 
+Visualization
+^^^^^^^^^^^^^
+
 The currently loaded roadmap, volume region, solution path and collisions can be visualized by setting ``enable_visualization`` to *'true'*.
 
 .. _Modify:
 
-Setup the plugin
+Setup The Plugin
 ----------------
 
 You need a working *MoveIt!* setup which we reference from now on with ``<your_moveit_setup>``.
+If you don't have a setup you can also use `Franka Emika's Panda Config <https://github.com/ros-planning/panda_moveit_config>`_.
 Make sure to replace all references with the actual package name.
 
 Create a file ``<your_moveit_setup>/launch/rtr_planning_pipeline.launch.xml`` with the following content::
@@ -79,8 +87,8 @@ Change the ``move_group`` parameter ``pipeline`` in your ``move_group.launch`` t
 
   ...
 
-Create the file ``<your_moveit_setup>/config/rtr_planning_config.yaml`` and configure roadmap and planner parameters.
-You can use this_ template and follow the instructions below for adding your own generated roadmaps.
+Create the file ``<your_moveit_setup>/config/rtr_planning.yaml`` and configure roadmap and planner parameters.
+You can use this rtr_planning.yaml_ template and follow the instructions below for adding your own generated roadmaps.
 
 Planner Parameters
 ^^^^^^^^^^^^^^^^^^
@@ -91,9 +99,9 @@ Planner parameters are defined under the namespace ``move_group/planner_config``
 
 **allowed_joint_distance** (float) - Absolute joint distance tolerance for start and goal states.
 
-**allowed_position_distance** (float) -  *(not yet implemented)* Absolute tool position tolerance for start and goal states in meter.
+**allowed_position_distance** (float) -  *(not implemented as of Feb 2019)* Absolute tool position tolerance for start and goal states in meter.
 
-**allowed_orientation_distance** (float) - *(not yet implemented)* Absolute tool orientation tolerance for start and goal states in rad.
+**allowed_orientation_distance** (float) - *(not implemented as of Feb 2019)* Absolute tool orientation tolerance for start and goal states in rad.
 
 **max_waypoint_distance** (float) - Absolute joint distance for collision checking in the planning scene when connecting start and goal states.
 
@@ -120,7 +128,7 @@ Each group should have a default roadmap name specified under ``group/default_ro
 Further roadmaps can be added as a list under ``group/roadmaps``.
 
 Roadmaps where the files should not be resolved from the defaults can be configured under ``roadmaps``.
-Here each roadmap can have specific entries for ``filename,`` ``package`` or ``directory`` that overwrite the defaults.
+Here each roadmap can have specific entries for ``filename``, ``package``, or ``directory`` that overwrite the defaults.
 The same pattern can be used when adding additional parameters later.
 This is also useful for creating aliases of the same roadmap with different configurations.
 
@@ -153,4 +161,5 @@ The example above would resolve to the following roadmap paths:
   - roadmap_2: <package_B>/directory_A/roadmap_2.og
   - roadmap_3: <package_A>/directory_A/roadmap_3.og
 
-.. _this:  https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_planning.yaml
+.. _rtr_planning.yaml:  https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/rtr_moveit_tutorial/rtr_planning.yaml
+.. _README: https://github.com/PickNikRobotics/rtr_moveit/blob/pr-tutorial/README.md
