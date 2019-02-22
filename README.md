@@ -22,12 +22,6 @@ The interface hides all of this and only provides functions for initialization, 
 
 ## Install
 
-### Ubuntu Debian
-
-> Note: this package has not been released yet
-
-    sudo apt-get install ros-kinetic-rtr_moveit
-
 ### Build from Source
 
 These instructions assume you are running on Ubuntu 16.04:
@@ -38,8 +32,14 @@ These instructions assume you are running on Ubuntu 16.04:
 
 1. Install RapidPlan dependencies:
 
-> Note: RapidPlan is not released yet. All dependencies are installed from .deb files stored the private git repo [rtr_moveit_deb_files](https://github.com/PickNikRobotics/rtr_moveit_deb_files.git). Follow the instructions in that repo for installing dependencies.
-
+> Note: RapidPlan is not released yet. All dependencies are installed from [this](https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh) encrypted binary shell script.
+        sudo apt-get install mcrypt python-pip
+        pip install --user gdown
+        gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
+        cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
+        sudo bash rtr_0.1.2.deb.run
+        rm rtr_0.1.2.deb.run rtr_0.1.2.deb.run.crypt
+        
 1. Re-use or create a catkin workspace:
 
         export CATKIN_WS=~/ws_catkin/
