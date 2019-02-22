@@ -33,52 +33,70 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Implementation of the RTRPlanningInterface
  */
 
+// C++
 #include <deque>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <sstream>
+#include <mutex>
 
+// ROS
+#include <ros/console.h>
+#include <ros/console_backend.h>
+
+// rtr_moveit
 #include <rtr_moveit/rtr_planner_interface.h>
 #include <rtr_moveit/rtr_conversions.h>
+#include <rtr_moveit/roadmap_search.h>
 
 namespace rtr_moveit
 {
-const std::string LOGNAME = "rtr_planner_interface";
+static const std::string LOGNAME = "rtr_planner_interface";
 
-RTRPlannerInterface::RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh)
-  : nh_(nh), robot_model_(robot_model)
+RTRPlannerInterface::RTRPlannerInterface(const ros::NodeHandle& nh) : nh_(nh)
 {
+  std::map<std::string, ros::console::levels::Level>  loggers;
+  if (ros::console::get_loggers(loggers))
+  {
+    auto logger_level = loggers.find(ros::this_node::getNamespace());
+    if (logger_level != loggers.end())
+      debug_ = logger_level->second == ros::console::levels::Level::Debug;
+  }
 }
 
 RTRPlannerInterface::~RTRPlannerInterface()
 {
-  // TODO(henningkayser) implement destructor
+  // TODO(RTR-52) implement destructor
 }
 
 bool RTRPlannerInterface::initialize()
 {
+#if RAPID_PLAN_INTERFACE_ENABLED
   // check if hardware is connected
-  if (!hardware_interface_.Connected())
+  if (!rapidplan_interface_.Connected())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Hardware is not connected.");
     return false;
   }
 
   // try to initialize hardware
-  if (!hardware_interface_.Init())
+  if (!rapidplan_interface_.Init())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Failed to initialize Hardware.");
     return false;
   }
 
   // perform handshake
-  if (!hardware_interface_.Handshake())
+  if (!rapidplan_interface_.Handshake())
   {
     ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Handshake failed.");
     return false;
   }
+#endif
 
   ROS_INFO_NAMED(LOGNAME, "RapidPlan interface initialized.");
   return true;
@@ -86,130 +104,220 @@ bool RTRPlannerInterface::initialize()
 
 bool RTRPlannerInterface::isReady() const
 {
-  // TODO(henningkayser): Test latency of hardware calls and drop Connected() or Handshake() if necessary
-  // check connection
-  if (!hardware_interface_.Connected())
-  {
-    ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Hardware is not connected.");
-    return false;
-  }
-
+#if RAPID_PLAN_INTERFACE_ENABLED
   // try handshake
-  if (!hardware_interface_.Handshake())
+  if (!rapidplan_interface_.Handshake())
   {
     ROS_WARN_NAMED(LOGNAME, "RapidPlan interface is not ready. Handshake failed.");
     return false;
   }
+#endif
 
   ROS_DEBUG_NAMED(LOGNAME, "RapidPlan interface is ready.");
   return true;
 }
 
-bool RTRPlannerInterface::hasGroupConfig(const std::string& group_name) const
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
+                                const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+                                const double& timeout, std::vector<rtr::Config>& solution_path)
 {
-  return roadmaps_.count(group_name);
+  std::deque<unsigned int> waypoints, edges;
+  std::vector<rtr::Config> roadmap_states;
+  bool success = solve(roadmap_spec, start_state_id, goal, occupancy_voxels, timeout, roadmap_states, waypoints, edges);
+  // TODO(RTR-53): verify waypoints and states? This should already be done in the PathPlanner.
+  if (success)
+  {
+    // fill solution path
+    for (unsigned int waypoint : waypoints)
+      solution_path.push_back(roadmap_states[waypoint]);
+
+    // debug output
+    if (debug_)
+    {
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, "Solution path:");
+      for (unsigned int waypoint : waypoints)
+      {
+        std::string waypoint_debug_text = "waypoint ";
+        waypoint_debug_text += std::to_string(waypoint);
+        waypoint_debug_text += ": ";
+        for (float joint_value : roadmap_states[waypoint])
+        {
+          waypoint_debug_text += std::to_string(joint_value);
+          waypoint_debug_text += " ";
+        }
+        ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoint_debug_text);
+      }
+    }
+  }
+  return success;
 }
 
-bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-                                const geometry_msgs::Pose goal_pose, const std::vector<rtr::Voxel>& occupancy_voxels,
-                                robot_trajectory::RobotTrajectory& trajectory)
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
+                                const RapidPlanGoal& goal, const std::vector<rtr::Voxel>& occupancy_voxels,
+                                const double& timeout, std::vector<rtr::Config>& roadmap_states,
+                                std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges)
 {
-  // TODO(henningkayser): function should be threadsave/mutex locked
+  {  // SCOPED MUTEX LOCK
+    // In solve() the RapidPlanInterface and PathPlanner are loaded with the same roadmap so that results from
+    // RapidPlanInterface::CheckScene() can be used with PathPlanner::FindPath().
+    // Calling prepareRoadmap() ensures that both are loaded with the same roadmap and the mutex lock prevents race
+    // conditions by restricting write access in the meantime.
+    // All functions that either write or load roadmaps should follow this behavior.
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
 
-  // TODO(henningkayser): Use roadmap identifier instead of group_name
-  // verify roadmap and retrieve roadmap index
-  uint16_t roadmap_index;
-  if (!prepareRoadmap(group_name, roadmap_index))
+    // Load roadmap to PathPlanner and MPA and get roadmap storage index
+    uint16_t roadmap_index;
+    if (!prepareRoadmap(roadmap_spec, roadmap_index))
+      return false;
+
+    // Check collisions using the RapidPlanInterface
+    std::vector<uint8_t> collisions;
+#if RAPID_PLAN_INTERFACE_ENABLED
+    if (!rapidplan_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
+    {
+      ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
+      return false;
+    }
+#else
+    collisions.resize(planner_.GetNumEdges());  // dummy
+#endif
+
+    // Call PathPlanner
+    int result = -1;
+    if (goal.type == RapidPlanGoal::Type::TRANSFORM)
+    {
+      result = planner_.FindPath(start_state_id, goal.transform, collisions, goal.tolerance, goal.weights,
+                                 waypoints, edges, timeout);
+    }
+    else if (goal.type == RapidPlanGoal::Type::STATE_IDS)
+    {
+      result = planner_.FindPath(start_state_id, goal.state_ids, collisions, waypoints, edges, timeout);
+    }
+    else
+    {
+      ROS_ERROR_NAMED(LOGNAME, "RapidPlanGoal goal type missing - Should be TRANSFORM or STATE_IDS");
+      return false;
+    }
+
+    // debug output
+    if (debug_)
+    {
+      std::string waypoints_debug_text = "Waypoint ids: ";
+      for (unsigned int waypoint : waypoints)
+      {
+        waypoints_debug_text += std::to_string(waypoint);
+        waypoints_debug_text += " ";
+      }
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoints_debug_text);
+
+      std::string edges_debug_text = "Edges: ";
+      const std::vector<std::array<unsigned int, 2>>& roadmap_edges = planner_.GetEdges();
+      for (unsigned int edge_id : edges)
+      {
+        edges_debug_text += std::to_string(roadmap_edges[(int)edge_id][0]);
+        edges_debug_text += "-";
+        edges_debug_text += std::to_string((int)roadmap_edges[(int)edge_id][1]);
+        edges_debug_text += " ";
+      }
+      ROS_DEBUG_STREAM_NAMED(LOGNAME, edges_debug_text);
+    }
+
+    if (result != 0)  // FAILURE
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
+      return false;
+    }
+
+    // SUCCESS
+    ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan found solution path with " << waypoints.size() << " waypoints");
+    roadmap_states = planner_.GetConfigs();  // return state configs
+    return result == 0;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      configs = planner_.GetConfigs();
+    return success;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapEdges(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Edge>& edges)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      edges = planner_.GetEdges();
+    return success;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::getRoadmapTransforms(const RoadmapSpecification& roadmap_spec,
+                                               std::vector<rtr::ToolPose>& transforms)
+{
+  // mutex locked because of sequential load and read access
+  {  // SCOPED MUTEX LOCK
+    std::lock_guard<std::mutex> scoped_lock(mutex_);
+    bool success = loadRoadmapToPathPlanner(roadmap_spec);
+    if (success)
+      transforms = planner_.GetTransforms();
+    return success;
+  }  // SCOPED MUTEX UNLOCK
+}
+
+bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec)
+{
+  // check if roadmap is already loaded in the PathPlanner
+  if (roadmap_spec.roadmap_id != loaded_roadmap_)
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Plan aborted. RapidPlan could not be configured with roadmap " << group_name);
-    return false;
+    ROS_INFO_STREAM_NAMED(LOGNAME, "Loading roadmap: " << roadmap_spec.files.occupancy);
+    if (!planner_.LoadRoadmap(roadmap_spec.files.occupancy))
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap '" << roadmap_spec.roadmap_id << "' to PathPlanner");
+      return false;
+    }
+
+    // save new roadmap if it is new
+    // TODO(RTR-51): Only store *.og file paths, others will be deprecated with the next API
+    if (roadmaps_.find(roadmap_spec.roadmap_id) == roadmaps_.end())
+      roadmaps_[roadmap_spec.roadmap_id] = roadmap_spec;
+    loaded_roadmap_ = roadmap_spec.roadmap_id;
+
+    // set edge cost as simple joint distance - TODO(RTR-55): use weighted distance?
+    planner_.SetEdgeCost(&getConfigDistance);
   }
-
-  // convert goal pose to Transform
-  rtr::Transform goal_transform, tolerance, weights;
-  poseMsgToRtr(goal_pose, goal_transform);
-
-  // query collisions from board
-  std::vector<uint8_t> collisions;
-  if (!hardware_interface_.CheckScene(occupancy_voxels, roadmap_index, collisions))
-  {
-    ROS_ERROR_NAMED(LOGNAME, "HardwareInterface failed to check collision scene.");
-    return false;
-  }
-
-  // TODO(henningkayser): implement state search
-  // Find closest existing configuration in roadmap that can be connected to the start state
-  unsigned int start_config = 0;  // dummy
-
-  // query planner
-  std::deque<unsigned int> waypoints;
-  std::deque<unsigned int> edges;
-  int result = planner_.FindPath(start_config, goal_transform, collisions, tolerance, weights, waypoints, edges);
-  if (result != 0)
-  {
-    ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan failed at finding a valid path - " << planner_.GetError(result));
-    return false;
-  }
-
-  // create joint trajectory from solution
-  processSolutionPath(waypoints, edges, trajectory);
-
-  // TODO(henningkayser): Connect start state to trajectory
   return true;
 }
 
-bool RTRPlannerInterface::solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-                                const moveit_msgs::RobotState& goal_state,
-                                const std::vector<rtr::Voxel>& occupancy_voxels,
-                                robot_trajectory::RobotTrajectory& trajectory)
+bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
 {
-  // TODO(henningkayser): implement solve() with goal states
-  // This can be done by finding goal candidate states in the roadmap and connecting the trajectory to goal_state
-  ROS_ASSERT_MSG(false, "Function not implemented.");
-  return false;
-}
-
-bool RTRPlannerInterface::prepareRoadmap(const std::string& roadmap, uint16_t& roadmap_index)
-{
-  // check if roadmap specification exists
-  if (roadmaps_.find(roadmap) == roadmaps_.end())
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "No roadmap specification found for roadmap " << roadmap);
+  if (!loadRoadmapToPathPlanner(roadmap_spec))
     return false;
-  }
-
-  RoadmapFiles files = roadmaps_[roadmap].files;
-
-  // verify that the roadmap is loaded in the PathPlanner
-  if (roadmap != loaded_roadmap_)
-  {
-    if (!planner_.LoadRoadmap(files.configs, files.edges, files.transforms))
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load roadmap " << roadmap << " in PathPlanner.");
-      return false;
-    }
-  }
 
   // check if roadmap is already written to hardware
-  if (!findRoadmapIndex(roadmap, roadmap_index))
+  if (!findRoadmapIndex(roadmap_spec.roadmap_id, roadmap_index))
   {
+#if RAPID_PLAN_INTERFACE_ENABLED
     // write roadmap and retrieve new roadmap index
-    if (!hardware_interface_.WriteRoadmap(files.occupancy, roadmap_index))
+    if (!rapidplan_interface_.WriteRoadmap(roadmap_spec.files.occupancy, roadmap_index))
     {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Unable to write roadmap " << roadmap << " to hardware.");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to write roadmap '" << roadmap_spec.roadmap_id << "' to RapidPlan MPA");
       return false;
     }
-    roadmap_indices_[roadmap_index] = roadmap;
+#else
+    // if we don't use hardware, we increase the numbers
+    roadmap_index = roadmap_indices_.size();
+#endif
+    roadmap_indices_[roadmap_index] = roadmap_spec.roadmap_id;
   }
+  ROS_INFO_STREAM_NAMED(LOGNAME, "RapidPlan initialized with with roadmap '" << roadmap_spec.roadmap_id << "'");
   return true;
 }
-
-void RTRPlannerInterface::processSolutionPath(const std::deque<unsigned int>& waypoints,
-                                              const std::deque<unsigned int>& edges,
-                                              robot_trajectory::RobotTrajectory& trajectory) const
-{
-  // TODO(henningkayser): implement trajectory processing
-  ROS_ASSERT_MSG(false, "Function not implemented.");
-}
-
 }  // namespace rtr_moveit

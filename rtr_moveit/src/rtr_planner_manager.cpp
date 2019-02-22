@@ -33,24 +33,28 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Implementation of the RapidPlan planner plugin that can be loaded with the planning pipeline
  */
 
+// C++
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
+#include <boost/filesystem.hpp>
 
+// MoveIt!
 #include <moveit/planning_interface/planning_interface.h>
+#include <moveit_msgs/Constraints.h>
 #include <pluginlib/class_list_macros.hpp>
 
+// rtr_moveit
 #include <rtr_moveit/rtr_planning_context.h>
 #include <rtr_moveit/rtr_planner_interface.h>
 
 // ROS parameter loading
-#include <rosparam_shortcuts/rosparam_shortcuts.h>
 #include <ros/package.h>
-#include <boost/filesystem.hpp>
+#include <rosparam_shortcuts/rosparam_shortcuts.h>
 
 namespace rtr_moveit
 {
@@ -80,7 +84,7 @@ public:
     }
 
     // initialize planner
-    planner_interface_.reset(new RTRPlannerInterface(robot_model, nh_));
+    planner_interface_.reset(new RTRPlannerInterface(nh_));
     if (!planner_interface_->initialize())
     {
       ROS_ERROR_NAMED(LOGNAME, "RapidPlan interface could not be initialized!");
@@ -94,29 +98,36 @@ public:
   bool canServiceRequest(const moveit_msgs::MotionPlanRequest& req) const
   {
     // check if there is a roadmap configuration for the given group
-    if (!planner_interface_->hasGroupConfig(req.group_name))
+    if (!group_configs_.count(req.group_name))
     {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "No Planner configuration found for group " << req.group_name);
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "No roadmap found for group " << req.group_name);
       return false;
     }
 
-    // TODO(henningkayser): Move this (and getGoalPose() in planning context) to a an extra goal specification class
-    // This version only supports single goal poses
-    if (req.goal_constraints.size() != 1)
+    // check if there are constraints that only contain joint/position/orientation
+    bool has_valid_constraint = false;
+    for (const moveit_msgs::Constraints& goal_constraint : req.goal_constraints)
     {
-      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal constraints. Should be 1.");
+      if(goal_constraint.visibility_constraints.empty())
+      {
+        has_valid_constraint = !( goal_constraint.joint_constraints.empty()
+                               && goal_constraint.position_constraints.empty()
+                               && goal_constraint.orientation_constraints.empty());
+        if (has_valid_constraint)
+          break;
+      }
+    }
+
+    if (!has_valid_constraint)
+    {
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "Planning request does not contain supported goal constraints - "
+                                   << "Supported are only joint/position/orientation goals");
       return false;
     }
-    if (req.goal_constraints[0].position_constraints.size() != 1)
-    {
-      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of posiiton constraints. Should be 1.");
-      return false;
-    }
-    if (req.goal_constraints[0].position_constraints[0].constraint_region.primitive_poses.size() != 1)
-    {
-      ROS_ERROR_NAMED(LOGNAME, "Received an invalid number of goal poses. Should be 1.");
-      return false;
-    }
+    // Note: Further checks require inspecting the roadmaps, volume region and attached collision objects.
+    // This does not belong into the planner manager and should be provided by the planning context.
+    // TODO(RTR-50): check if we have a valid roadmap for this request
+    // TODO(RTR-49): check if we can handle the goal constraints
 
     return true;
   }
@@ -143,7 +154,7 @@ public:
     {
       if (!nh_.hasParam(group_name))
       {
-        ROS_INFO_STREAM_NAMED(LOGNAME, "No roadmap specification found for goup " << group_name);
+        ROS_INFO_STREAM_NAMED(LOGNAME, "No roadmap specification found for group " << group_name);
         continue;
       }
 
@@ -235,11 +246,32 @@ public:
                                                             const planning_interface::MotionPlanRequest& req,
                                                             moveit_msgs::MoveItErrorCodes& error_code) const
   {
-    // TODO(henningkayser): retrieve group config and roadmap specs and pass them to the planning context
-    RTRPlanningContext context("rtr_planning_context", req.group_name, planner_interface_);
-    context.setMotionPlanRequest(req);
-    context.setPlanningScene(planning_scene);
-    return std::make_shared<RTRPlanningContext>(context);
+    RTRPlanningContextPtr context;
+    error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+    // look for group config
+    auto group_config_search = group_configs_.find(req.group_name);
+    if (group_config_search != group_configs_.end())
+    {
+      // look for roadmap
+      // TODO(RTR-31): look for suitable roadmap if we have multiple
+      GroupConfig group_config = group_config_search->second;
+      std::string group_roadmap = group_config.default_roadmap_id;
+      if (group_roadmap.empty() && !group_config.roadmap_ids.empty())
+        group_roadmap = *group_config.roadmap_ids.begin();
+      auto roadmap_search = roadmaps_.find(group_roadmap);
+      if (roadmap_search != roadmaps_.end())
+      {
+        context.reset(new RTRPlanningContext(req.group_name, roadmap_search->second, planner_interface_));
+        context->setMotionPlanRequest(req);
+        context->setPlanningScene(planning_scene);
+        context->configure(error_code);
+      }
+      else
+      {
+        ROS_ERROR_STREAM_NAMED(LOGNAME, "No valid roadmap specification found for group " << req.group_name);
+      }
+    }
+    return context;
   }
 
 private:

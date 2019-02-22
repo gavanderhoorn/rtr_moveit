@@ -33,69 +33,96 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: A planning interface that offers convenient and thread-safe collision checking and planning with RapidPlan.
  */
 
 #ifndef RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 #define RTR_MOVEIT_RTR_PLANNER_INTERFACE_H
 
+// temporarily disable RapidPlanInterface
+#define RAPID_PLAN_INTERFACE_ENABLED 0
+
 #include <deque>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include <ros/ros.h>
 
 #include <rtr-api/PathPlanner.hpp>
-#include <rtr-api/HardwareInterface.hpp>
+#include <rtr-occupancy/Voxel.hpp>
+
+#if RAPID_PLAN_INTERFACE_ENABLED
+#include <rtr-api/RapidPlanInterface.hpp>
+#endif
 
 #include <rtr_moveit/rtr_datatypes.h>
 
 #include <moveit/macros/class_forward.h>
-#include <moveit_msgs/RobotState.h>
-#include <moveit/robot_trajectory/robot_trajectory.h>
 
 namespace rtr_moveit
 {
 MOVEIT_CLASS_FORWARD(RTRPlannerInterface);
 
+// A RapidPlan goal specification
+struct RapidPlanGoal
+{
+  // RapidPlan supports either ids of roadmap states or tool pose transforms as goals
+  enum Type
+  {
+    STATE_IDS,
+    TRANSFORM,
+  };
+  Type type;
+
+  // STATE_IDS: a list of target states in the roadmap
+  std::vector<uint> state_ids;
+
+  // TRANSFORM: an endeffector transform to look for a target state
+  std::array<float, 6> transform;
+  std::array<float, 6> tolerance;  // pose tolerance of the target state
+  std::array<float, 6> weights;    // pose distance weights for ranking multiple solutions
+};
 class RTRPlannerInterface
 {
 public:
-  RTRPlannerInterface(const robot_model::RobotModelConstPtr& robot_model, const ros::NodeHandle& nh);
+  RTRPlannerInterface(const ros::NodeHandle& nh);
   virtual ~RTRPlannerInterface();
 
-  /** \brief Initialize the HardwareInterface */
+  /** \brief Initialize the RapidPlanInterface */
   bool initialize();
 
-  /** \brief Check if the HardwareInterface is available and the planner can receive requests */
+  /** \brief Check if the RapidPlanInterface is available and the planner can receive requests */
   bool isReady() const;
 
-  /** \brief Verify there are roadmaps for a given group */
-  bool hasGroupConfig(const std::string& group_name) const;
+  /** \brief Run planning attempt and generate a solution path */
+  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
+             const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
+             std::vector<rtr::Config>& solution_path);
 
-  /** \brief Run planning attempt and generate a robot trajectory*/
-  bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const geometry_msgs::Pose goal_pose, const std::vector<rtr::Voxel>& occupancy_boxes,
-             robot_trajectory::RobotTrajectory& trajectory);
+  /** \brief Run planning attempt and generate solution waypoints and edges */
+  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
+             const std::vector<rtr::Voxel>& occupancy_voxels, const double& timeout,
+             std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
+             std::deque<unsigned int>& edges);
 
-  // The PathPlanner does not support planning for specific goal states.
-  // This behavior could be implemented by searching for the closest existing
-  // states and calling FindPath with the corresponding state ids.
-  // The solution could then be connected to the goal state by interpolation.
-  bool solve(const std::string& group_name, const moveit_msgs::RobotState& start_state,
-             const moveit_msgs::RobotState& goal_state, const std::vector<rtr::Voxel>& occupancy_boxes,
-             robot_trajectory::RobotTrajectory& trajectory);
+  /** \brief Get the configs of the given roadmap */
+  bool getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs);
 
-protected:
-  /** \brief Initialize PathPlanner and HardwareInterface with a given roadmap identifier */
-  bool prepareRoadmap(const std::string& roadmap, uint16_t& roadmap_index);
+  /** \brief Get the edges of the given roadmap */
+  bool getRoadmapEdges(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Edge>& edges);
 
-  /** \brief Process waypoints and edges of the solution and create a joint trajectory */
-  void processSolutionPath(const std::deque<unsigned int>& waypoints, const std::deque<unsigned int>& edges,
-                           robot_trajectory::RobotTrajectory& trajectory) const;
+  /** \brief Get the tool transforms of the given roadmap */
+  bool getRoadmapTransforms(const RoadmapSpecification& roadmap_spec, std::vector<rtr::ToolPose>& transforms);
 
 private:
+  /** \brief load roadmap file to PathPlanner and store roadmap specification */
+  bool loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec);
+
+  /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
+  bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
+
   /** \brief Find the roadmap index for a given roadmap name */
   bool findRoadmapIndex(const std::string& roadmap_name, uint16_t& roadmap_index)
   {
@@ -111,10 +138,16 @@ private:
   }
 
   ros::NodeHandle nh_;
-  robot_model::RobotModelConstPtr robot_model_;
+  bool debug_ = false;
 
-  // RapidPlan interfaces
-  rtr::HardwareInterface hardware_interface_;
+  // mutex lock for thread-safe RapidPlan calls
+  std::mutex mutex_;
+
+// RapidPlan interfaces
+#if RAPID_PLAN_INTERFACE_ENABLED
+  rtr::RapidPlanInterface rapidplan_interface_;
+#endif
+
   rtr::PathPlanner planner_;
 
   // available roadmap specifications

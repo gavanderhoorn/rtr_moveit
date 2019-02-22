@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Structs for roadmap and configuration data types
  */
 
 #ifndef RTR_MOVEIT_RTR_DATATYPES_H
@@ -57,7 +57,7 @@ struct RoadmapVolume
 
 struct RoadmapFiles
 {
-  // TODO(henningkayser): Filetypes will change in the new API
+  // TODO(RTR-54): Filetypes will change in the new API
   std::string occupancy;
   std::string volume;
   std::string edges;

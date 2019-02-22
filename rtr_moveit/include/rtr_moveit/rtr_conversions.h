@@ -33,7 +33,7 @@
  *********************************************************************/
 
 /* Author: Henning Kayser
- * Desc: henningkayser@picknik.ai
+ * Desc: Conversion functions between MoveIt!/RapidPlan types
  */
 
 #ifndef RTR_MOVEIT_RTR_CONVERSIONS_H
@@ -48,10 +48,13 @@
 #include <Eigen/Geometry>
 
 #include <ros/ros.h>
+#include <ros/assert.h>
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Pose.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <moveit/robot_state/robot_state.h>
 #include <geometric_shapes/shapes.h>
 
 #include <moveit/collision_detection/world.h>
@@ -66,53 +69,27 @@ namespace rtr_moveit
 {
 namespace
 {
-inline void poseMsgToRtr(const geometry_msgs::Pose& pose, std::array<float, 6>& rtr_transform)
+inline void pathRtrToRobotTrajectory(const std::vector<std::vector<float>>& path,
+                                     const robot_state::RobotState& reference_state,
+                                     const std::vector<std::string>& joint_names,
+                                     robot_trajectory::RobotTrajectory& trajectory)
 {
-  // set position x/y/z
-  rtr_transform[0] = pose.position.x;
-  rtr_transform[1] = pose.position.y;
-  rtr_transform[2] = pose.position.z;
-
-  // set orientation roll pitch yaw
-  Eigen::Quaterniond rotation(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-  Eigen::Vector3d euler_angles = rotation.toRotationMatrix().eulerAngles(0, 1, 2);
-  rtr_transform[3] = euler_angles[0];
-  rtr_transform[4] = euler_angles[1];
-  rtr_transform[5] = euler_angles[2];
-}
-
-inline void poseRtrToMsg(const std::array<float, 6>& rtr_transform, geometry_msgs::Pose& pose)
-{
-  pose.position.x = rtr_transform[0];
-  pose.position.y = rtr_transform[1];
-  pose.position.z = rtr_transform[2];
-  tf::Quaternion rotation = tf::createQuaternionFromRPY(rtr_transform[3], rtr_transform[4], rtr_transform[5]);
-  tf::quaternionTFToMsg(rotation, pose.orientation);
-}
-
-inline void pathRtrToJointTrajectory(const std::vector<std::vector<float>>& roadmap_states,
-                                     const std::deque<unsigned int>& path_indices,
-                                     trajectory_msgs::JointTrajectory& trajectory)
-{
-  trajectory.points.resize(path_indices.size());
-  int joints_num = roadmap_states[0].size();
-  for (auto i : path_indices)
+  ROS_ASSERT_MSG(joint_names.size() == path[0].size(), "Joint values don't match joint names");
+  for (const std::vector<float>& joint_config : path)
   {
-    // fill joint values
-    trajectory.points[i].positions.resize(joints_num);
-    for (int j = 0; j < joints_num; j++)
-      trajectory.points[i].positions[j] = roadmap_states[i][j];
-
-    // TODO(henningkayser@picknik.ai): Initialize velocities, accelerations, effort, time_from-start
+    robot_state::RobotStatePtr robot_state(new robot_state::RobotState(reference_state));
+    for (std::size_t i = 0; i < joint_names.size(); ++i)
+      robot_state->setJointPositions(joint_names[i], { (double)joint_config[i] });
+    trajectory.addSuffixWayPoint(robot_state, 0.1);
   }
 }
 
 /* \brief Generates a list of occupancy boxes given a planning scene and target volume region */
-inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr& planning_scene,
+inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningSceneConstPtr planning_scene,
                                               const RoadmapVolume& volume, std::vector<rtr::Voxel>& voxels)
 {
   // occupancy box id and dimensions
-  // TODO(henningkayser): Check that box id is not present in planning scene - should be unique
+  // TODO(RTR-57): Check that box id is not present in planning scene - should be unique
   std::string box_id = "rapidplan_collision_box";
   double voxel_dimension = volume.voxel_dimension;
   double x_length = volume.dimensions.size[0];
@@ -155,25 +132,25 @@ inline void planningSceneToRtrCollisionVoxels(const planning_scene::PlanningScen
 
   // Loop over X/Y/Z voxel positions and check for box collisions in the collision scene
   // NOTE: This implementation is a prototype and will be replaced by more efficient methods as described below
-  // TODO(henningkayser): More efficient implementations:
+  // TODO(RTR-57): More efficient implementations:
   //                          * Iterate over collision objects and only sample local bounding boxes
   //                          * Use octree search, since boxes can have variable sizes
-  // TODO(henningkayser): adjust grid to odd volume dimensions
-  // TODO(henningkayser): Do we need extra Box padding here?
-  for (uint16_t x = 0; x < x_voxels; x++)
+  // TODO(RTR-57): adjust grid to odd volume dimensions
+  // TODO(RTR-57): Do we need extra Box padding here?
+  for (uint16_t x = 0; x < x_voxels; ++x)
   {
     world.getWorld()->moveObject(box_id, x_step);
-    for (uint16_t y = 0; y < y_voxels; y++)
+    for (uint16_t y = 0; y < y_voxels; ++y)
     {
       world.getWorld()->moveObject(box_id, y_step);
-      for (uint16_t z = 0; z < z_voxels; z++)
+      for (uint16_t z = 0; z < z_voxels; ++z)
       {
         world.getWorld()->moveObject(box_id, z_step);
         planning_scene->getCollisionWorld()->checkWorldCollision(request, result, world);
         if (result.collision)
         {
           voxels.push_back(rtr::Voxel(x, y, z));
-          result.clear();  // TODO(henningkayser): Is this really necessary?
+          result.clear();  // TODO(RTR-57): Is this really necessary?
         }
       }
       // move object back to z start

@@ -1,0 +1,44 @@
+# general planner parameters
+planner_config:
+  # enable collision checks using the hardware
+  rapidplan_interface_enabled: true
+  # allowed distance tolerance for query start/goal states
+  allowed_joint_distance: 0.5
+  # allowed position tolerance for query start/goal states
+  allowed_position_distance: 0.1 # NOTE: not yet implemented
+  # allowed orientation tolerance for query start/goal states
+  allowed_orientation_distance: 0.1 # NOTE: not yet implemented
+  # the waypoint distance to use for collision checking when
+  # appending start/goal states
+  max_waypoint_distance: 0.01
+  # the maximum number of goal states to use for RapidPlan
+  max_goal_states: 5
+  # occupancy_source defines what occupancy data should be passed to the RapidPlanInterface
+  # PLANNING_SCENE (default) - generate a Voxel representation of the planning scene
+  # POINT_CLOUD - pass transformed point cloud data from topic pcl_topic
+  occupancy_source: PLANNING_SCENE
+  pcl_topic: /pcl_topic
+  # publishes markers to so that planer data can be visualized in RViz
+  # NOTE: currently only the volume region and occupancy voxels from the
+  # planning scene are being published to /volume_region
+  visualization_enabled: false
+
+# default roadmap path settings
+#default:
+#  roadmaps_package: <your_roadmap_package>
+#  roadmaps_directory: <subdirectory_to_roadmaps>
+#
+## roadmap specific settings for overwriting default package or directory
+#roadmaps:
+#  arm_default:
+#    filename: <completely_different_file_name>
+#    package: <another_package>
+#  arm_alternative:
+#    filename: <alternative_name>
+#
+## planning group configuration
+#arm:
+#  default_roadmap: arm_default
+#  roadmaps:
+#    - arm_alternative
+#    - <another_roadmap>

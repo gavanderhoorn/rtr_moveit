@@ -58,48 +58,6 @@
 // RapidPlan
 #include <rtr-occupancy/Voxel.hpp>
 
-TEST(TestSuite, convertPoseAndTransform)
-{
-  // create pose and test pose
-  geometry_msgs::Pose pose, test_pose;
-  pose.position.x = 0.5;
-  pose.position.y = 0.3;
-  pose.position.z = 0.9;
-  tf::Quaternion rotation = tf::createQuaternionFromRPY(0.1, 0.4, 0.2);
-  tf::quaternionTFToMsg(rotation, pose.orientation);
-
-  std::array<float, 6> transform, test_transform;
-
-  // convert pose to transform and back
-  rtr_moveit::poseMsgToRtr(pose, transform);
-  rtr_moveit::poseRtrToMsg(transform, test_pose);
-  rtr_moveit::poseMsgToRtr(test_pose, test_transform);
-
-  // equality thresholds
-  double position_threshold = std::numeric_limits<float>::epsilon();
-  double orientation_threshold = 0.1;
-
-  // test pose equality
-  EXPECT_TRUE(std::abs(pose.position.x - test_pose.position.x) < position_threshold);
-  EXPECT_TRUE(std::abs(pose.position.y - test_pose.position.y) < position_threshold);
-  EXPECT_TRUE(std::abs(pose.position.z - test_pose.position.z) < position_threshold);
-
-  // test rotation equality
-  tf::Quaternion test_rotation;
-  tf::quaternionMsgToTF(test_pose.orientation, test_rotation);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < orientation_threshold)
-      << "Pose: Angle shortest path " << rotation.angleShortestPath(test_rotation);
-
-  // test transform equality from the other side
-  EXPECT_TRUE(std::abs(transform[0] - test_transform[0]) < position_threshold);
-  EXPECT_TRUE(std::abs(transform[1] - test_transform[1]) < position_threshold);
-  EXPECT_TRUE(std::abs(transform[2] - test_transform[2]) < position_threshold);
-  rotation = tf::createQuaternionFromRPY(transform[0], transform[1], transform[2]);
-  test_rotation = tf::createQuaternionFromRPY(test_transform[0], test_transform[1], test_transform[2]);
-  EXPECT_TRUE(std::abs(rotation.angleShortestPath(test_rotation)) < orientation_threshold)
-      << "Transform: Angle shortest path " << rotation.angleShortestPath(test_rotation);
-}
-
 /* This test creates an empy planning scene and checks the number of occupancy
  * voxels after conversion for different configurations. */
 // NOTE: The test throws warnings that frame transforms are empty and the

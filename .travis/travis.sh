@@ -17,7 +17,6 @@ export HIT_ENDOFSCRIPT=false
 export REPOSITORY_NAME=${PWD##*/}
 cd ..
 export CATKIN_WS=${PWD}/ws_moveit
-export RAPIDPLAN_DEBS=$CI_SOURCE_PATH/rtr_moveit_deb_files
 echo "---"
 echo "Testing branch '$TRAVIS_BRANCH' of '$REPOSITORY_NAME' on ROS '$ROS_DISTRO'"
 
@@ -37,9 +36,6 @@ if [ "$IN_DOCKER" -eq 0 ]; then
   # Create workspace in root Travis environment where the SSH keys are easily accessible
   travis_run mkdir -p $CATKIN_WS/src
   travis_run cd $CATKIN_WS/src
-
-  # clone rapidplan deb files
-  travis_run git clone https://github.com/PickNikRobotics/rtr_moveit_deb_files.git $RAPIDPLAN_DEBS
 
   # Move repo we are testing into catkin ws
   sudo mv $CI_SOURCE_PATH $CATKIN_WS/src
@@ -156,14 +152,12 @@ export PATH=/usr/lib/ccache:$PATH
 # Setup rosdep - note: "rosdep init" is already setup in base ROS Docker image
 travis_run rosdep update
 
-# Install rapidplan dependencies
-travis_run apt-get -qq install ros-kinetic-pcl-ros
-travis_run apt-get -qq install ros-kinetic-trac-ik-lib
-travis_run apt-get -qq install libstdc++6
-travis_run apt-get -qq install gdebi
-travis_run gdebi --n $RAPIDPLAN_DEBS/rapidplan/rapid-plan-16.04.deb
-travis_run dpkg -i $RAPIDPLAN_DEBS/rtr_toolkit/ros-kinetic-*.deb
-travis_run apt-get -yf install
+# Install RapidPlan dependencies
+travis_run apt-get -qq install mcrypt python-pip
+travis_run pip install gdown
+travis_run gdown https://drive.google.com/uc?id=1cXFOaMUuUyq5Fic1vdgIpBeOah8T6olh
+cat rtr_0.1.2.deb.run.crypt | crypt "super secret picknik pass" -d > rtr_0.1.2.deb.run
+travis_run bash rtr_0.1.2.deb.run
 
 # TODO: restore run before script
 set -x

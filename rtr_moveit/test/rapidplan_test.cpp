@@ -36,21 +36,66 @@
  * Desc: henningkayser@picknik.ai
  */
 
-#include <limits>
 #include <gtest/gtest.h>
-#include <rtr-api/HardwareInterface.hpp>
+#include <ros/ros.h>
+#include <ros/package.h>
+#include <rtr_moveit/rtr_planner_interface.h>
+#include <rtr_moveit/roadmap_search.h>
 
-TEST(TestSuite, checkHardware)
+TEST(TestSuite, testPlannerInterface)
 {
-  rtr::HardwareInterface hardwareInterface;
-  EXPECT_TRUE(hardwareInterface.Init()) << "Unable to initialize HardwareInterface!";
-  EXPECT_TRUE(hardwareInterface.Connected()) << "HardwareInterface is not connected!";
-  EXPECT_TRUE(hardwareInterface.Handshake()) << "Hardwareinterface - Handshake failed!";
-  EXPECT_TRUE(hardwareInterface.Test()) << "Hardwareinterface - Test failed";
+  ros::NodeHandle nh;
+
+  // roadmap spec without file
+  rtr_moveit::RoadmapSpecification roadmap;
+  roadmap.roadmap_id = "test_roadmap";
+
+  // valid start
+  const unsigned int start_id = 0;
+  const unsigned int goal_id = 10;
+
+  // valid goal
+  rtr_moveit::RapidPlanGoal goal;
+  goal.type = rtr_moveit::RapidPlanGoal::Type::STATE_IDS;
+  goal.state_ids = { goal_id };
+
+  // planner setup
+  rtr_moveit::RTRPlannerInterface planner_(nh);
+  double timeout = 5;  // seconds
+  std::vector<rtr::Voxel> occupancy_dummy;
+  std::vector<std::vector<float>> solution;
+  EXPECT_FALSE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, solution))
+    << "Planning should not work without a roadmap";
+  solution.clear();
+
+  // add roadmap file
+  roadmap.roadmap_id = "test_roadmap_2";
+  roadmap.files.occupancy = ros::package::getPath("rtr_moveit") + "/test/test_roadmap.og";
+
+  // this should work now
+  std::vector<std::vector<float>> roadmap_states;
+  std::deque<unsigned int> waypoints, edges;
+  ASSERT_TRUE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, roadmap_states, waypoints, edges))
+    << "Planning with STATE_IDS goal should have been successful";
+
+  // then it should work backwards as well
+  goal.state_ids = {start_id};
+  ASSERT_TRUE(planner_.solve(roadmap, goal_id, goal, occupancy_dummy, timeout, solution))
+    << "Planning with JOINT_STATE goal should have been successful";
+
+  ASSERT_FALSE(solution.empty()) << "Solution path is empty";
+
+  //TODO(RTR-58): add TRANSFORM goal test
+
+  // test state search
+  EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[start_id], roadmap_states) == start_id);
+  EXPECT_TRUE(rtr_moveit::findClosestConfigId(roadmap_states[goal_id], roadmap_states) == goal_id);
+  EXPECT_FALSE(rtr_moveit::findClosestConfigId(roadmap_states[goal_id], roadmap_states) == start_id);
 }
 
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "rapidplan_test");
   return RUN_ALL_TESTS();
 }
