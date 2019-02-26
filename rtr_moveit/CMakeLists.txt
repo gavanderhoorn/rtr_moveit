@@ -59,11 +59,11 @@ catkin_package(
 include_directories(
   SYSTEM
     ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
 )
 
 include_directories(
- include
- ${catkin_INCLUDE_DIRS}
+  include
 )
 
 # Declare a C++ library with project namespace to avoid naming collision
