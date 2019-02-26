@@ -77,7 +77,7 @@ struct RapidPlanGoal
   Type type;
 
   // STATE_IDS: a list of target states in the roadmap
-  std::vector<unsigned int> state_ids;
+  std::vector<std::size_t> state_ids;
 
   // TOOL_POSE an endeffector transform to look for a target state
   rtr::ToolPose tool_pose;
@@ -97,13 +97,13 @@ public:
   bool isReady() const;
 
   /** \brief Run planning attempt and generate a solution path */
-  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
+  bool solve(const RoadmapSpecification& roadmap_spec, const std::size_t start_state_id, const RapidPlanGoal& goal,
              const OccupancyData& occupancy_data, const double& timeout, std::vector<rtr::Config>& solution_path);
 
   /** \brief Run planning attempt and generate solution waypoints and edges */
-  bool solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id, const RapidPlanGoal& goal,
+  bool solve(const RoadmapSpecification& roadmap_spec, const std::size_t start_state_id, const RapidPlanGoal& goal,
              const OccupancyData& occupancy_data, const double& timeout, std::vector<rtr::Config>& roadmap_states,
-             std::deque<unsigned int>& waypoints, std::deque<unsigned int>& edges);
+             std::deque<std::size_t>& waypoints, std::deque<std::size_t>& edges);
 
   /** \brief Get the configs of the given roadmap */
   bool getRoadmapConfigs(const RoadmapSpecification& roadmap_spec, std::vector<rtr::Config>& configs);

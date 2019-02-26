@@ -109,7 +109,7 @@ moveit_msgs::MoveItErrorCodes RTRPlanningContext::solve(robot_trajectory::RobotT
     return result;
 
   // initialize start state
-  unsigned int start_state_id;
+  std::size_t start_state_id;
   if (!initStartState(start_state_id))
     return result;
 
@@ -404,7 +404,7 @@ bool RTRPlanningContext::getRapidPlanGoal(const moveit_msgs::Constraints& goal_c
   return false;
 }
 
-bool RTRPlanningContext::initStartState(unsigned int& start_state_id)
+bool RTRPlanningContext::initStartState(std::size_t& start_state_id)
 {
   rtr::Config start_config;
   start_state_ = std::make_shared<robot_state::RobotState>(planning_scene_->getCurrentState());

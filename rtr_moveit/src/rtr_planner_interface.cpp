@@ -136,25 +136,25 @@ bool RTRPlannerInterface::isReady() const
   return true;
 }
 
-bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const std::size_t start_state_id,
                                 const RapidPlanGoal& goal, const OccupancyData& occupancy_data, const double& timeout,
                                 std::vector<rtr::Config>& solution_path)
 {
-  std::deque<unsigned int> waypoints, edges;
+  std::deque<std::size_t> waypoints, edges;
   std::vector<rtr::Config> roadmap_states;
   bool success = solve(roadmap_spec, start_state_id, goal, occupancy_data, timeout, roadmap_states, waypoints, edges);
   // TODO(RTR-53): verify waypoints and states? This should already be done in the PathPlanner.
   if (success)
   {
     // fill solution path
-    for (unsigned int waypoint : waypoints)
+    for (std::size_t waypoint : waypoints)
       solution_path.push_back(roadmap_states[waypoint]);
 
     // debug output
     if (debug_)
     {
       ROS_DEBUG_STREAM_NAMED(LOGNAME, "Solution path:");
-      for (unsigned int waypoint : waypoints)
+      for (std::size_t waypoint : waypoints)
       {
         std::string waypoint_debug_text = "waypoint ";
         waypoint_debug_text += std::to_string(waypoint);
@@ -171,10 +171,10 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
   return success;
 }
 
-bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const unsigned int start_state_id,
+bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const std::size_t start_state_id,
                                 const RapidPlanGoal& goal, const OccupancyData& occupancy_data, const double& timeout,
-                                std::vector<rtr::Config>& roadmap_states, std::deque<unsigned int>& waypoints,
-                                std::deque<unsigned int>& edges)
+                                std::vector<rtr::Config>& roadmap_states, std::deque<std::size_t>& waypoints,
+                                std::deque<std::size_t>& edges)
 {
   {  // SCOPED MUTEX LOCK
     // In solve() the RapidPlanInterface and PathPlanner are loaded with the same roadmap so that results from
@@ -236,7 +236,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     if (debug_)
     {
       std::string waypoints_debug_text = "Waypoint ids: ";
-      for (unsigned int waypoint : waypoints)
+      for (std::size_t waypoint : waypoints)
       {
         waypoints_debug_text += std::to_string(waypoint);
         waypoints_debug_text += " ";
@@ -244,8 +244,8 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
       ROS_DEBUG_STREAM_NAMED(LOGNAME, waypoints_debug_text);
 
       std::string edges_debug_text = "Edges: ";
-      const std::vector<std::array<unsigned int, 2>>& roadmap_edges = planner_.GetEdges();
-      for (unsigned int edge_id : edges)
+      const std::vector<std::array<std::size_t, 2>>& roadmap_edges = planner_.GetEdges();
+      for (std::size_t edge_id : edges)
       {
         edges_debug_text += std::to_string(roadmap_edges[(int)edge_id][0]);
         edges_debug_text += "-";

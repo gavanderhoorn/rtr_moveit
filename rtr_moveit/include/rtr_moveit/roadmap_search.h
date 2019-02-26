@@ -109,8 +109,8 @@ float getDistance<rtr::ToolPose>(const rtr::ToolPose& first, const rtr::ToolPose
 * @param distance_threshold - The allowed distance of result items from item
 */
 template <class T>
-void findClosest(const T& item, const std::vector<T>& items, std::vector<unsigned int>& result_ids,
-                 std::vector<float>& result_distances, const unsigned int max_results = 1,
+void findClosest(const T& item, const std::vector<T>& items, std::vector<std::size_t>& result_ids,
+                 std::vector<float>& result_distances, const std::size_t max_results = 1,
                  const float& distance_threshold = FLT_MAX)
 {
   result_ids.clear();
@@ -157,8 +157,8 @@ void findClosest(const T& item, const std::vector<T>& items, std::vector<unsigne
 * @param distance_threshold - The allowed distance of result poses from pose
 */
 void findClosestPositions(const rtr::ToolPose& pose, const std::vector<rtr::ToolPose>& poses,
-                          std::vector<unsigned int>& result_ids, std::vector<float>& result_distances,
-                          const unsigned int max_results = 1, const float& distance_threshold = FLT_MAX)
+                          std::vector<std::size_t>& result_ids, std::vector<float>& result_distances,
+                          const std::size_t max_results = 1, const float& distance_threshold = FLT_MAX)
 {
   findClosest<rtr::ToolPose>(pose, poses, result_ids, result_distances, max_results, distance_threshold);
 }
@@ -171,7 +171,7 @@ void findClosestPositions(const rtr::ToolPose& pose, const std::vector<rtr::Tool
 * @param distance_threshold - The allowed distance of result poses from pose
 */
 void findClosestPositions(const rtr::ToolPose& pose, const std::vector<rtr::ToolPose>& poses,
-                          std::vector<unsigned int>& result_ids, const unsigned int max_results = 1,
+                          std::vector<std::size_t>& result_ids, const std::size_t max_results = 1,
                           const float& distance_threshold = FLT_MAX)
 {
   std::vector<float> result_distances;
@@ -188,8 +188,8 @@ void findClosestPositions(const rtr::ToolPose& pose, const std::vector<rtr::Tool
 * @param distance_threshold - The allowed distance of result elements from config
 */
 void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config>& configs,
-                        std::vector<unsigned int>& result_ids, std::vector<float>& result_distances,
-                        const unsigned int max_results = 1, const float& distance_threshold = FLT_MAX)
+                        std::vector<std::size_t>& result_ids, std::vector<float>& result_distances,
+                        const std::size_t max_results = 1, const float& distance_threshold = FLT_MAX)
 {
   findClosest<rtr::Config>(config, configs, result_ids, result_distances, max_results, distance_threshold);
 }
@@ -202,7 +202,7 @@ void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config
 * @param distance_threshold - The allowed distance of result elements from config
 */
 void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config>& configs,
-                        std::vector<unsigned int>& result_ids, std::vector<float>& result_distances,
+                        std::vector<std::size_t>& result_ids, std::vector<float>& result_distances,
                         const float& distance_threshold = FLT_MAX)
 {
   findClosestConfigs(config, configs, result_ids, result_distances, configs.size(), distance_threshold);
@@ -217,7 +217,7 @@ void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config
 * @param distance_threshold - The allowed distance of result elements from config
 */
 void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config>& configs,
-                        std::vector<unsigned int>& result_ids, const float& distance_threshold = FLT_MAX)
+                        std::vector<std::size_t>& result_ids, const float& distance_threshold = FLT_MAX)
 {
   std::vector<float> result_distances;
   findClosestConfigs(config, configs, result_ids, result_distances, configs.size(), distance_threshold);
@@ -228,10 +228,10 @@ void findClosestConfigs(const rtr::Config& config, const std::vector<rtr::Config
  * @param configs - The list of configs to search in
  * @return - The index of the closest element in configs, -1 if configs is empty or config sizes don't match
  */
-unsigned int findClosestConfigId(const rtr::Config& config, const std::vector<rtr::Config>& configs,
-                                 const float& distance_threshold = FLT_MAX)
+std::ptrdiff_t findClosestConfigId(const rtr::Config& config, const std::vector<rtr::Config>& configs,
+                                   const float& distance_threshold = FLT_MAX)
 {
-  std::vector<unsigned int> result_ids;
+  std::vector<std::size_t> result_ids;
   std::vector<float> result_distances;
   findClosestConfigs(config, configs, result_ids, result_distances, 1, distance_threshold);
   return result_ids.empty() ? -1 : result_ids[0];

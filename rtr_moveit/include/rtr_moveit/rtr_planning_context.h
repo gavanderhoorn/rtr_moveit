@@ -130,7 +130,7 @@ private:
    *  @return true on success, false if the joint state inside the MotionPlanRequest is populated but invalid or if no
    *  start state candidate could be found inside the roadmap
    */
-  bool initStartState(unsigned int& start_state_id);
+  bool initStartState(std::size_t& start_state_id);
 
   /**
    * Converts a path of rtr::Config waypoints to a robot trajectory.

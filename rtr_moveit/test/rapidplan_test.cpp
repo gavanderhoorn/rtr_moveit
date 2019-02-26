@@ -51,8 +51,8 @@ TEST(TestSuite, testPlannerInterface)
   roadmap.roadmap_id = "test_roadmap";
 
   // valid start
-  const unsigned int start_id = 0;
-  const unsigned int goal_id = 10;
+  const std::size_t start_id = 0;
+  const std::size_t goal_id = 10;
 
   // valid goal
   rtr_moveit::RapidPlanGoal goal;
@@ -75,7 +75,7 @@ TEST(TestSuite, testPlannerInterface)
 
   // this should work now
   std::vector<std::vector<float>> roadmap_states;
-  std::deque<unsigned int> waypoints, edges;
+  std::deque<std::size_t> waypoints, edges;
   ASSERT_TRUE(planner_.solve(roadmap, start_id, goal, occupancy_dummy, timeout, roadmap_states, waypoints, edges))
       << "Planning with STATE_IDS goal should have been successful";
 
