@@ -119,10 +119,10 @@ private:
   bool loadRoadmapToPathPlanner(const RoadmapSpecification& roadmap_spec);
 
   /** \brief Initialize PathPlanner and RapidPlanInterface with a given roadmap identifier */
-  bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index);
+  bool prepareRoadmap(const RoadmapSpecification& roadmap_spec, size_t& roadmap_index);
 
   /** \brief Find the roadmap index for a given roadmap name */
-  bool findRoadmapIndex(const std::string& roadmap_name, uint16_t& roadmap_index)
+  bool findRoadmapIndex(const std::string& roadmap_name, size_t& roadmap_index)
   {
     for (auto it = roadmap_indices_.begin(); it != roadmap_indices_.end(); it++)
     {

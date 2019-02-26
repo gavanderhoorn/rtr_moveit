@@ -105,7 +105,7 @@ bool RTRPlannerInterface::initialize()
     // clear hardware if  there are still roadmaps stored
     if (roadmap_indices_.empty())
     {
-      uint16_t num_roadmaps;
+      size_t num_roadmaps;
       if (!rapidplan_interface_.NumRoadmaps(num_roadmaps))
       {
         ROS_ERROR_NAMED(LOGNAME, "Unable to initialize RapidPlan interface. Reading hardware state failed.");
@@ -185,7 +185,7 @@ bool RTRPlannerInterface::solve(const RoadmapSpecification& roadmap_spec, const 
     std::lock_guard<std::mutex> scoped_lock(mutex_);
 
     // Load roadmap to PathPlanner and MPA and get roadmap storage index
-    uint16_t roadmap_index;
+    size_t roadmap_index;
     if (!prepareRoadmap(roadmap_spec, roadmap_index))
       return false;
 
@@ -330,7 +330,7 @@ bool RTRPlannerInterface::loadRoadmapToPathPlanner(const RoadmapSpecification& r
   return true;
 }
 
-bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, uint16_t& roadmap_index)
+bool RTRPlannerInterface::prepareRoadmap(const RoadmapSpecification& roadmap_spec, size_t& roadmap_index)
 {
   if (!loadRoadmapToPathPlanner(roadmap_spec))
     return false;
