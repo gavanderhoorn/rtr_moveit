@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtr-api
   rtr-core
   rtr-occupancy
+  rtr_perc_rapidsense
   tf
   trajectory_msgs
 )
@@ -42,6 +43,7 @@ catkin_package(
     roscpp
     rtr-api
     rtr-core
+    rtr_perc_rapidsense
   INCLUDE_DIRS
     include
   LIBRARIES

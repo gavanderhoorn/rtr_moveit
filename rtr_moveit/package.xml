@@ -10,44 +10,47 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend version_gte="1.0.0">rtr-api</build_depend>
+  <build_depend version_gte="1.0.0">rtr-core</build_depend>
+  <build_depend version_gte="1.0.0">rtr-occupancy</build_depend>
+  <build_depend version_gte="1.0.0">rtr_perc_rapidsense</build_depend>
   <build_depend>eigen</build_depend>
   <build_depend>geometry_msgs</build_depend>
-  <build_depend>moveit_msgs</build_depend>
   <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_msgs</build_depend>
   <build_depend>moveit_ros_planning</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pluginlib</build_depend>
   <build_depend>rosconsole</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslint</build_depend>
   <build_depend>rosparam_shortcuts</build_depend>
-  <build_depend>rtr-api</build_depend>
-  <build_depend>rtr-core</build_depend>
-  <build_depend>rtr-occupancy</build_depend>
-  <build_depend>pcl_ros</build_depend>
-  <build_depend>pluginlib</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>trajectory_msgs</build_depend>
 
+  <exec_depend version_gte="1.0.0">rtr-api</exec_depend>
+  <exec_depend version_gte="1.0.0">rtr-core</exec_depend>
+  <exec_depend version_gte="1.0.0">rtr-occupancy</exec_depend>
+  <exec_depend version_gte="1.0.0">rtr_perc_rapidsense</exec_depend>
   <exec_depend>eigen</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>moveit_core</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>moveit_ros_planning</exec_depend>
-  <exec_depend>roscpp</exec_depend>
-  <exec_depend>rosparam_shortcuts</exec_depend>
   <exec_depend>pcl_ros</exec_depend>
   <exec_depend>pluginlib</exec_depend>
-  <exec_depend>rtr-api</exec_depend>
-  <exec_depend>rtr-core</exec_depend>
-  <exec_depend>rtr-occupancy</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>rosparam_shortcuts</exec_depend>
   <exec_depend>tf</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
 
   <test_depend>rostest</test_depend>
   <test_depend>rosunit</test_depend>
 
+  <build_export_depend version_gte="1.0.0">rtr-api</build_export_depend>
+  <build_export_depend version_gte="1.0.0">rtr-core</build_export_depend>
+  <build_export_depend version_gte="1.0.0">rtr_perc_rapidsense</build_export_depend>
   <build_export_depend>moveit_core</build_export_depend>
-  <build_export_depend>rtr-api</build_export_depend>
-  <build_export_depend>rtr-core</build_export_depend>
   <build_export_depend>pluginlib</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
 

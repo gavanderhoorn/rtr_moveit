@@ -53,7 +53,7 @@
 #include <moveit/macros/class_forward.h>
 
 // RapidPlan
-#include <rtr-api/RapidPlanInterface.hpp>
+#include <rtr_perc_rapidsense/RapidPlanInterface.hpp>
 #include <rtr-api/PathPlanner.hpp>
 #include <rtr-api/RapidPlanDataTypes.hpp>
 #include <rtr-occupancy/Voxel.hpp>
