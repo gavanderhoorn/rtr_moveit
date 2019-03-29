@@ -13,7 +13,6 @@
   <build_depend version_gte="1.0.0">rtr-api</build_depend>
   <build_depend version_gte="1.0.0">rtr-core</build_depend>
   <build_depend version_gte="1.0.0">rtr-occupancy</build_depend>
-  <build_depend version_gte="1.0.0">rtr_perc_rapidsense</build_depend>
   <build_depend>eigen</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>moveit_core</build_depend>
@@ -31,7 +30,6 @@
   <exec_depend version_gte="1.0.0">rtr-api</exec_depend>
   <exec_depend version_gte="1.0.0">rtr-core</exec_depend>
   <exec_depend version_gte="1.0.0">rtr-occupancy</exec_depend>
-  <exec_depend version_gte="1.0.0">rtr_perc_rapidsense</exec_depend>
   <exec_depend>eigen</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>moveit_core</exec_depend>
@@ -49,7 +47,6 @@
 
   <build_export_depend version_gte="1.0.0">rtr-api</build_export_depend>
   <build_export_depend version_gte="1.0.0">rtr-core</build_export_depend>
-  <build_export_depend version_gte="1.0.0">rtr_perc_rapidsense</build_export_depend>
   <build_export_depend>moveit_core</build_export_depend>
   <build_export_depend>pluginlib</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>

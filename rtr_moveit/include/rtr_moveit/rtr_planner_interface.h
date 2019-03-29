@@ -53,7 +53,7 @@
 #include <moveit/macros/class_forward.h>
 
 // RapidPlan
-#include <rtr_perc_rapidsense/RapidPlanInterface.hpp>
+#include <rtr-api/MPAInterface.hpp>
 #include <rtr-api/PathPlanner.hpp>
 #include <rtr-api/RapidPlanDataTypes.hpp>
 #include <rtr-occupancy/Voxel.hpp>
@@ -142,7 +142,7 @@ private:
   std::mutex mutex_;
 
   // RapidPlan interfaces
-  rtr::RapidPlanInterface rapidplan_interface_;
+  rtr::MPAInterface rapidplan_interface_;
   rtr::PathPlanner planner_;
   bool rapidplan_interface_enabled_ = true;
 
